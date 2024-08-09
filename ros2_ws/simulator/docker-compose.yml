@@ -1,0 +1,22 @@
+services:
+  ros:
+    build:
+      context: ../
+      dockerfile: simulator/Dockerfile
+    runtime: nvidia
+    environment:
+      - DISPLAY=:0
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - PYTHONUNBUFFERED=1
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+    devices:
+      - /dev/input:/dev/input
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      # - .:/test
+      # - ./src/common:/ros2_ws/src/common
+      # - ./src/simulator:/ros2_ws/src/simulator
+    # command: ros2 launch racecar_description description.launch
+    command: ros2 launch racecar_gazebo empty_world.launch
+    # command: gz sim /test/test.sdf

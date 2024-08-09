@@ -1,0 +1,29 @@
+<launch>
+  <arg name="joy_vel_in"  default="input_joy/cmd_vel"/>
+  <arg name="joy_vel_out" default="joy_vel"/>
+
+  <arg name="cmd_vel_out" default="ackermann_mux/cmd_vel"/>
+
+  <arg name="config" default="$(find ackermann_mux)/config/ackermann_mux.yaml"/>
+
+  <arg name="config_joy" default="$(find ackermann_mux)/config/joystick.yaml"/>
+
+  <node pkg="ackermann_mux" type="ackermann_mux" name="ackermann_mux" output="screen">
+    <remap from="cmd_vel_out" to="$(arg cmd_vel_out)"/>
+
+    <rosparam file="$(arg config_locks)"  command="load"/>
+    <rosparam file="$(arg config_topics)" command="load"/>
+  </node>
+
+  <node pkg="ackermann_mux" type="ackermann_marker" name="ackermann_marker">
+    <remap from="twist"  to="$(arg cmd_vel_out)"/>
+    <remap from="marker" to="ackermann_marker"/>
+  </node>
+
+  <node pkg="ackermann_mux" type="joystick_relay.py" name="joystick_relay" output="screen">
+    <remap from="joy_vel_in"  to="$(arg joy_vel_in)"/>
+    <remap from="joy_vel_out" to="$(arg joy_vel_out)"/>
+
+    <rosparam file="$(arg config_joy)" command="load"/>
+  </node>
+</launch>

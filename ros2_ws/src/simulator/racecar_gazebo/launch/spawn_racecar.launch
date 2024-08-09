@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="x" default="0" />
+  <arg name="y" default="0" />
+  <arg name="z" default="1" />
+  <arg name="yaw" default="0" />
+  <arg name="joystick" default="true" />
+
+  <!-- URDF description -->
+  <include file="$(find-pkg-share racecar_description)/launch/description.launch" />
+
+  <!-- Spawn racecar -->
+  <node pkg="ros_gz_sim" exec="create" name="gz_spawn_entity" output="screen"
+        args="-topic /robot_description
+              -name racecar
+              -allow_renaming true
+              -x $(var x)
+              -y $(var y)
+              -z $(var z)
+              -Y $(var yaw)" />
+
+  <!-- Gazebo bridge -->
+  <node pkg="ros_gz_bridge" exec="parameter_bridge" name="ros_gz_bridge" output="screen"
+        args="clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock
+              odom@nav_msgs/msg/Odometry[gz.msgs.OdometryWithCovariance
+              imu/data@sensor_msgs/msg/Imu[gz.msgs.IMU
+              scan@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan
+              tf@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V
+              joint_states@sensor_msgs/msg/JointState[gz.msgs.Model
+              throttle/velocity/command@std_msgs/msg/Float32]gz.msgs.Float
+              steering/position/command@std_msgs/msg/Float32]gz.msgs.Float
+              " />
+  <!--  Disabled
+              scan/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked
+              color/image_raw@sensor_msgs/msg/Image[gz.msgs.Image
+              color/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo
+              depth/image_raw@sensor_msgs/msg/Image[gz.msgs.Image
+              depth/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo
+ -->
+
+  <include file="$(find-pkg-share racecar_control)/launch/control.launch">
+    <arg name="use_sim_time" value="true" />
+  </include>
+  <include file="$(find-pkg-share racecar_control)/launch/teleop.launch" />
+</launch>

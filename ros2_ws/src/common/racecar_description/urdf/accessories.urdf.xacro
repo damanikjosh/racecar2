@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:include filename="$(find racecar_description)/urdf/accessories/hokuyo_ust10.urdf.xacro" />
+
+  <xacro:hokuyo_ust10_mount prefix="front" topic="scan" parent_link="chassis">
+    <origin xyz="0.2425 0.00 0.07" rpy="0 0 0" />
+  </xacro:hokuyo_ust10_mount>
+  
+</robot>

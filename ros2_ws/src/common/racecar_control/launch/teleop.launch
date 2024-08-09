@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="joy_dev" default="$(env JOY_DEVICE /dev/input/js0)" />
+  <arg name="joystick" default="true" />
+
+  <group if="$(var joystick)">
+    <push-ros-namespace namespace="bluetooth_teleop" />
+
+    <node pkg="joy" exec="joy_node" name="joy_node">
+      <param from="$(find-pkg-share racecar_control)/config/teleop_ps4.yaml" />
+      <param name="dev" value="$(var joy_dev)" />
+    </node>
+
+    <node pkg="teleop_ackermann_joy" exec="teleop_node" name="teleop_ackermann_joy">
+      <param from="$(find-pkg-share racecar_control)/config/teleop_ps4.yaml" />
+    </node>
+  </group>
+  <!-- <group>
+    <push-ros-namespace namespace="twist_marker_server" />
+    <node pkg="interactive_marker_twist_server" exec="marker_server" name="twist_marker_server">
+        <param name="link_name" value="base_link" />
+    </node>
+  </group> -->
+</launch>
