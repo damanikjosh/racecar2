@@ -17,14 +17,14 @@
  * Modified by: Joshua J. Damanik
  */
 
-#ifndef STEERING_ODOMETRY__ROLLING_MEAN_ACCUMULATOR_HPP_
-#define STEERING_ODOMETRY__ROLLING_MEAN_ACCUMULATOR_HPP_
+#ifndef RACECAR_CONTROL__ROLLING_MEAN_ACCUMULATOR_HPP_
+#define RACECAR_CONTROL__ROLLING_MEAN_ACCUMULATOR_HPP_
 
 #include <cassert>
 #include <cstddef>
 #include <vector>
 
-namespace steering_odometry
+namespace racecar_control
 {
 
 /// Computes the mean of the last accumulated elements.
@@ -84,6 +84,6 @@ private:
   bool buffer_filled_;
 };
 
-}  // namespace steering_odometry
+}  // namespace racecar_control
 
-#endif  // STEERING_ODOMETRY__ROLLING_MEAN_ACCUMULATOR_HPP_
+#endif  // RACECAR_CONTROL__ROLLING_MEAN_ACCUMULATOR_HPP_

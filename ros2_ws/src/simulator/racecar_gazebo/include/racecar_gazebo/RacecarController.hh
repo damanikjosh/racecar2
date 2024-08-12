@@ -20,7 +20,6 @@
 
 #include <gz/sim/System.hh>
 #include <memory>
-#include "steering_odometry/steering_odometry.hpp"
 
 namespace racecar_gazebo
 {
@@ -52,7 +51,6 @@ namespace racecar_gazebo
     /// \brief Private data pointer
     private: std::unique_ptr<RacecarControllerPrivate> dataPtr;
 
-    private: steering_odometry::SteeringOdometry odometry;
   };
 }
 

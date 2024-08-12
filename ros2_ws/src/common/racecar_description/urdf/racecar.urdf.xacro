@@ -116,7 +116,7 @@ limitations under the License.
        6 V. servo_stall_torque is measured in N m. servo_no_load_speed is
        measured in rad/s. -->
   <xacro:property name="servo_stall_torque" value="0.5649"/>
-  <xacro:property name="servo_no_load_speed" value="4.553"/>
+  <xacro:property name="servo_no_load_speed" value="6.0"/>
 
   <xacro:property name="dummy_inertia" value="1e-09"/>
 
@@ -568,7 +568,7 @@ limitations under the License.
       <left_steering_joint>left_steering_joint</left_steering_joint>
       <right_steering_joint>right_steering_joint</right_steering_joint>
       <wheel_base>${wheelbase}</wheel_base> <!-- Replace with actual value -->
-      <track_width>${hex_hub_dist}</track_width> <!-- Replace with actual value -->
+      <track_width>${hex_hub_dist - 2 * axle_length}</track_width> <!-- Replace with actual value -->
       <wheel_radius>${tire_dia / 2}</wheel_radius> <!-- Replace with actual value -->
       <vel_p_gain>1.0</vel_p_gain>
       <vel_i_gain>0.0</vel_i_gain>
@@ -578,9 +578,9 @@ limitations under the License.
       <vel_cmd_max>10000.0</vel_cmd_max>
       <vel_cmd_min>-10000.0</vel_cmd_min>
       <vel_cmd_offset>0.0</vel_cmd_offset>
-      <steer_p_gain>4.0</steer_p_gain>
+      <steer_p_gain>100.0</steer_p_gain>
       <steer_i_gain>0.1</steer_i_gain>
-      <steer_d_gain>1.0</steer_d_gain>
+      <steer_d_gain>0.1</steer_d_gain>
       <steer_i_max>1.0</steer_i_max>
       <steer_i_min>-1.0</steer_i_min>
       <steer_cmd_max>10000.0</steer_cmd_max>
@@ -593,75 +593,7 @@ limitations under the License.
       <vel_topic>throttle/velocity/command</vel_topic> <!-- Replace with actual topic name -->
       <steer_topic>steering/position/command</steer_topic> <!-- Replace with actual topic name -->
     </plugin>
-    <!-- <plugin
-      filename="libSpringSystem.so"
-      name="racecar_gazebo::SpringSystem">
-      <spring_constant>1200.0</spring_constant>
-      <damping_constant>150.0</damping_constant>
-      <joint_name>left_front_shock</joint_name>
-      <joint_name>right_front_shock</joint_name>
-      <joint_name>left_rear_shock</joint_name>
-      <joint_name>right_rear_shock</joint_name>
-    </plugin> -->
-    <!-- <plugin
-      filename="gz-sim-joint-controller-system"
-      name="gz::sim::systems::JointController">
-      <joint_name>left_rear_axle</joint_name>
-      <use_force_commands>true</use_force_commands>
-      <topic>left_rear_axle_ctrlr/command</topic>
-      <p_gain>1.5</p_gain>
-      <i_gain>1.0</i_gain>
-      <d_gain>0.0</d_gain>
-      <i_max>10.0</i_max>
-      <i_min>-10.0</i_min>
-    </plugin> -->
-    <!-- <plugin name="gz::sim::systems::AckermannSteering" filename="gz-sim-ackermann-steering-system">
-      <left_joint>left_rear_axle</left_joint>
-      <left_joint>left_front_axle</left_joint>
-      <right_joint>right_rear_axle</right_joint>
-      <right_joint>right_front_axle</right_joint>
-      <left_steering_joint>left_steering_joint</left_steering_joint>
-      <right_steering_joint>right_steering_joint</right_steering_joint>
-      <wheel_separation>${hex_hub_dist}</wheel_separation>
-      <kingpin_width>${axle_length}</kingpin_width>
-      <wheel_base>${wheelbase}</wheel_base>
-      <steering_limit>${degrees_45}</steering_limit>
-      <wheel_radius>${tire_dia / 2}</wheel_radius>
-      <odom_publish_frequency>50</odom_publish_frequency>
-      <min_velocity>-${axle_vel_limit * tire_dia / 2}</min_velocity>
-      <max_velocity>${axle_vel_limit * tire_dia / 2}</max_velocity>
-      <min_acceleration>-50</min_acceleration>
-      <max_acceleration>50</max_acceleration>
-      <min_jerk>-20</min_jerk>
-      <max_jerk>20</max_jerk>
-      <topic>/cmd_vel</topic>
-      <odom_topic>/odom</odom_topic>
-      <tf_topic>tf</tf_topic>
-      <frame_id>odom</frame_id>
-      <child_frame_id>base_link</child_frame_id>
-    </plugin> -->
-  
   </gazebo>
-
-  <!-- <ros2_control name="GazeboSimSystem" type="system">
-    <hardware>
-      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
-    </hardware>
-  
-    <xacro:shock_trans lr_prefix="left" fr_prefix="front"/>
-    <xacro:shock_trans lr_prefix="right" fr_prefix="front"/>
-    <xacro:shock_trans lr_prefix="left" fr_prefix="rear"/>
-    <xacro:shock_trans lr_prefix="right" fr_prefix="rear"/>
-
-    <xacro:wheel_trans lr_prefix="left" fr_prefix="front"/>
-    <xacro:wheel_trans lr_prefix="right" fr_prefix="front"/>
-    <xacro:wheel_trans lr_prefix="left" fr_prefix="rear"/>
-    <xacro:wheel_trans lr_prefix="right" fr_prefix="rear"/>
-
-    <xacro:steering_trans lr_prefix="left"/>
-    <xacro:steering_trans lr_prefix="right"/>
-    
-  </ros2_control> -->
 
 
 </robot>

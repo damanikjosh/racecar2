@@ -50,21 +50,20 @@ class racecar_gazebo::RacecarControllerPrivate
   /// \param[in] _msg Steering message
   public: void OnCmdSteer(const gz::msgs::Float &_msg);
 
-  public: void PublishOdometry(const std::chrono::steady_clock::duration &_now,
-    const double x, const double y, const double heading,
-    const double linear, const double angular);
+  public: void PublishEncoder(const std::chrono::steady_clock::duration &_now,
+    const double _vel, const double _steer);
 
   /// \brief Gazebo communication node.
   public: gz::transport::Node node;
 
-  public: gz::transport::Node::Publisher odomPub;
-  public: gz::transport::Node::Publisher tfPub;
+  public: gz::transport::Node::Publisher throttleRefPub;
+  public: gz::transport::Node::Publisher steeringRefPub;
 
   public: std::string robotFrame{"base_link"};
   public: std::string odomFrame{"odom"};
 
   public: std::chrono::steady_clock::duration odomPeriod{0};
-  public: std::chrono::steady_clock::duration lastOdomTime{0};
+  public: std::chrono::steady_clock::duration lastEncoderTime{0};
 
   public: bool initialized{false};
   public: bool publishTf{true};
@@ -94,7 +93,7 @@ class racecar_gazebo::RacecarControllerPrivate
   /// \brief Ackermann steering parameters
   public: double wheelBase{0.0};
   public: double trackWidth{0.0};
-  public: double wheelRadius{0.0};
+  // public: double wheelRadius{0.0};
 
   /// \brief Commanded joint velocity
   public: double velCmd{0.0};
@@ -103,6 +102,12 @@ class racecar_gazebo::RacecarControllerPrivate
   /// \brief mutex to protect jointVelCmd
   public: std::mutex cmdMutex;
 
+  public: double throttlePos{0.0};
+  public: double throttleVel{0.0};
+  public: double throttleEffort{0.0};
+
+
+  
   /// \brief Model interface
   public: gz::sim::Model model{gz::sim::kNullEntity};
 
@@ -226,15 +231,27 @@ void RacecarController::Configure(const gz::sim::Entity &_entity,
     return;
   }
 
-  sdfElem = _sdf->FindElement("wheel_radius");
+  // sdfElem = _sdf->FindElement("wheel_radius");
+  // if (sdfElem)
+  // {
+  //   this->dataPtr->wheelRadius = sdfElem->Get<double>();
+  // }
+  // else
+  // {
+  //   gzerr << "Failed to get <wheel_radius>." << std::endl;
+  //   return;
+  // }
+
+  sdfElem = _sdf->FindElement("encoder_period");
   if (sdfElem)
   {
-    this->dataPtr->wheelRadius = sdfElem->Get<double>();
+    this->dataPtr->odomPeriod = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+      std::chrono::duration<double>(sdfElem->Get<double>()));
   }
   else
   {
-    gzerr << "Failed to get <wheel_radius>." << std::endl;
-    return;
+    this->dataPtr->odomPeriod = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+      std::chrono::duration<double>(0.01));
   }
 
   // Velocity PID parameters
@@ -289,103 +306,42 @@ void RacecarController::Configure(const gz::sim::Entity &_entity,
   gzdbg << "cmd_min: ["    << cmdMin    << "]"             << std::endl;
   gzdbg << "cmd_offset: [" << cmdOffset << "]"             << std::endl;
 
-  odometry.set_odometry_type(steering_odometry::ACKERMANN_CONFIG);
-  odometry.set_wheel_params(this->dataPtr->wheelRadius, this->dataPtr->wheelBase, this->dataPtr->trackWidth);
-  odometry.init();
-
-  if (_sdf->HasElement("robot_frame"))
-  {
-    this->dataPtr->robotFrame = _sdf->Get<std::string>("robot_frame");
-  }
-
-  if (_sdf->HasElement("odom_frame"))
-  {
-    this->dataPtr->odomFrame = _sdf->Get<std::string>("odom_frame");
-  }
-
-  if (_sdf->HasElement("gaussian_noise"))
-  {
-    this->dataPtr->gaussianNoise = _sdf->Get<double>("gaussian_noise");
-  }
-
-  if (_sdf->HasElement("publish_tf"))
-  {
-    this->dataPtr->publishTf = _sdf->Get<bool>("publish_tf");
-  }
-
-
-  // Define publishers
-  double odomFreq = _sdf->Get<double>("odom_freq", 50.0).first;
-  if (odomFreq > 0.0)
-  {
-    std::chrono::duration<double> period{1.0 / odomFreq};
-    this->dataPtr->odomPeriod = std::chrono::duration_cast<std::chrono::steady_clock::duration>(period);
-  }
-  std::string topic = gz::transport::TopicUtils::AsValidTopic("odom");
-  if (_sdf->HasElement("odom_topic"))
-    topic = gz::transport::TopicUtils::AsValidTopic(_sdf->Get<std::string>("odom_topic"));
+  // Subscribe to commands
+  std::string topic = gz::transport::TopicUtils::AsValidTopic("throttle/velocity/command");
   if (topic.empty())
   {
-    gzerr << "Failed to create topic [" << _sdf->Get<std::string>("odom_topic") << "]" << std::endl;
+    gzerr << "Failed to create velocity topic [" << _sdf->Get<std::string>("topic") << "]" << std::endl;
     return;
   }
+  this->dataPtr->node.Subscribe(topic, &RacecarControllerPrivate::OnCmdVel, this->dataPtr.get());
+  gzmsg << "RacecarController subscribing to Float messages on [" << topic << "]" << std::endl;
 
-  this->dataPtr->odomPub = this->dataPtr->node.Advertise<gz::msgs::OdometryWithCovariance>(topic);
-
-  gzmsg << "RacecarController publishing OdometryWithCovariance to [" << topic << "]" << std::endl;
-
-  if (this->dataPtr->publishTf)
+  topic = gz::transport::TopicUtils::AsValidTopic("steering/position/command");
+  if (topic.empty())
   {
-    // Define publishers
-    topic = gz::transport::TopicUtils::AsValidTopic("tf");
-    if (_sdf->HasElement("tf_topic"))
-      topic = gz::transport::TopicUtils::AsValidTopic(_sdf->Get<std::string>("tf_topic"));
-    if (topic.empty())
-    {
-      gzerr << "Failed to create topic [" << _sdf->Get<std::string>("tf_topic") << "]" << std::endl;
-      return;
-    }
-
-    this->dataPtr->tfPub = this->dataPtr->node.Advertise<gz::msgs::Pose_V>(topic);
-
-    gzmsg << "RacecarController publishing Pose_V to [" << topic << "]" << std::endl;
+    gzerr << "Failed to create steering topic [" << _sdf->Get<std::string>("topic") << "]" << std::endl;
+    return;
   }
+  this->dataPtr->node.Subscribe(topic, &RacecarControllerPrivate::OnCmdSteer, this->dataPtr.get());
+  gzmsg << "RacecarController subscribing to Float messages on [" << topic << "]" << std::endl;
 
-
-  // Subscribe to commands
-  
-  if (_sdf->HasElement("vel_topic"))
+  topic = gz::transport::TopicUtils::AsValidTopic("throttle/velocity/reference");
+  if (topic.empty())
   {
-    topic = gz::transport::TopicUtils::AsValidTopic(
-        _sdf->Get<std::string>("vel_topic"));
-
-    if (topic.empty())
-    {
-      gzerr << "Failed to create velocity topic [" << _sdf->Get<std::string>("topic") << "]" << std::endl;
-      return;
-    }
-
-    this->dataPtr->node.Subscribe(topic, &RacecarControllerPrivate::OnCmdVel, this->dataPtr.get());
-
-    gzmsg << "RacecarController subscribing to Float messages on [" << topic << "]" << std::endl;
-
+    gzerr << "Failed to create throttle reference topic [" << _sdf->Get<std::string>("topic") << "]" << std::endl;
+    return;
   }
+  this->dataPtr->throttleRefPub = this->dataPtr->node.Advertise<gz::msgs::Float>(topic);
+  gzmsg << "RacecarController publishing to Float messages on [" << topic << "]" << std::endl;
 
-  if (_sdf->HasElement("steer_topic"))
+  topic = gz::transport::TopicUtils::AsValidTopic("steering/position/reference");
+  if (topic.empty())
   {
-    topic = gz::transport::TopicUtils::AsValidTopic(
-        _sdf->Get<std::string>("steer_topic"));
-
-    if (topic.empty())
-    {
-      gzerr << "Failed to create steering topic [" << _sdf->Get<std::string>("topic") << "]" << std::endl;
-      return;
-    }
-
-    this->dataPtr->node.Subscribe(topic, &RacecarControllerPrivate::OnCmdSteer, this->dataPtr.get());
-
-    gzmsg << "RacecarController subscribing to Float messages on [" << topic << "]" << std::endl;
+    gzerr << "Failed to create steering reference topic [" << _sdf->Get<std::string>("topic") << "]" << std::endl;
+    return;
   }
+  this->dataPtr->steeringRefPub = this->dataPtr->node.Advertise<gz::msgs::Float>(topic);
+  gzmsg << "RacecarController publishing to Float messages on [" << topic << "]" << std::endl;
 }
 
 //////////////////////////////////////////////////
@@ -467,34 +423,63 @@ void RacecarController::PreUpdate(const gz::sim::UpdateInfo &_info,
       rightSteeringPosComp == nullptr || rightSteeringPosComp->Data().empty())
     return;
 
+  
+  // Calculate the steerinng angle from each wheel
+  //   const double right_steer_pos_est = std::atan(
+  // wheelbase_ * std::tan(right_steer_pos) /
+  // (wheelbase_ - wheel_track_ / 2 * std::tan(right_steer_pos)));
+  double rightSteerPos = std::atan2(this->dataPtr->wheelBase * std::tan(rightSteeringPosComp->Data()[0]),
+    this->dataPtr->wheelBase + this->dataPtr->trackWidth / 2 * std::tan(rightSteeringPosComp->Data()[0]));
+  double leftSteerPos = std::atan2(this->dataPtr->wheelBase * std::tan(leftSteeringPosComp->Data()[0]),
+    this->dataPtr->wheelBase - this->dataPtr->trackWidth / 2 * std::tan(leftSteeringPosComp->Data()[0]));
+  double steerPos = (rightSteerPos + leftSteerPos) / 2;
+
+  // Calculate the velocity of each wheel
+  //   double vel_rr = right_rear_traction_wheel_vel * 2 * wheelbase_ /
+                  // (2 * wheelbase_ + wheel_track_ * std::tan(steer_pos));
+  double rightVel = rightRearWheelVelComp->Data()[0] * 2 * this->dataPtr->wheelBase /
+    (2 * this->dataPtr->wheelBase - this->dataPtr->trackWidth * std::tan(steerPos));
+  double leftVel = leftRearWheelVelComp->Data()[0] * 2 * this->dataPtr->wheelBase /
+    (2 * this->dataPtr->wheelBase + this->dataPtr->trackWidth * std::tan(steerPos));
+  double throttleVel = (rightVel + leftVel) / 2;
+
+  // Update the encoder position
+  this->dataPtr->throttleVel = throttleVel;
+
+  this->dataPtr->PublishEncoder(_info.simTime, throttleVel, steerPos);
+
+
   double targetVel = 0.0, targetSteer = 0.0;
   {
     std::lock_guard<std::mutex> lock(this->dataPtr->cmdMutex);
     // TODO: Calculate the target velocity and steering angle for each joints using Ackeramn steering
     targetVel = this->dataPtr->velCmd;
     targetSteer = this->dataPtr->steerCmd;
-    
     // For now, we will just set the target velocity to the same value for all wheels
   }
 
-  odometry.update_from_velocity(
-    rightRearWheelVelComp->Data()[0], leftRearWheelVelComp->Data()[0],
-    rightFrontWheelVelComp->Data()[0], leftFrontWheelVelComp->Data()[0],
-    rightSteeringPosComp->Data()[0], leftSteeringPosComp->Data()[0],
-    std::chrono::duration<double>(_info.dt).count());
-  
-  auto [targetTractions, targetSteerings] = odometry.get_commands_ackermann(targetVel, targetSteer);
+  // Calculate the target steering angle for each wheel
+  double tanTargetSteer = std::tan(targetSteer);
+  double targetRightSteer = std::atan2(2 * this->dataPtr->wheelBase * tanTargetSteer,
+    2 * this->dataPtr->wheelBase + this->dataPtr->trackWidth * tanTargetSteer);
+  double targetLeftSteer = std::atan2(2 * this->dataPtr->wheelBase * tanTargetSteer,
+    2 * this->dataPtr->wheelBase - this->dataPtr->trackWidth * tanTargetSteer);
 
-  double Wrr = targetTractions[0];
-  double Wlr = targetTractions[1];
-  double Wrf = targetTractions[2];
-  double Wlf = targetTractions[3];
+  // Calculate the target velocity for each wheel
+  double targetRightRearVel = targetVel * (1 + this->dataPtr->trackWidth / 2 * tanTargetSteer / this->dataPtr->wheelBase);
+  double targetLeftRearVel = targetVel * (1 - this->dataPtr->trackWidth / 2 * tanTargetSteer / this->dataPtr->wheelBase);
 
-  double Srr = targetSteerings[0];
-  double Slr = targetSteerings[1];
+  double sqrtNeg = std::sqrt(std::pow(this->dataPtr->wheelBase * tanTargetSteer, 2) +
+    std::pow(this->dataPtr->wheelBase - this->dataPtr->trackWidth / 2 * tanTargetSteer, 2));
+  double sqrtPos = std::sqrt(std::pow(this->dataPtr->wheelBase * tanTargetSteer, 2) +
+    std::pow(this->dataPtr->wheelBase + this->dataPtr->trackWidth / 2 * tanTargetSteer, 2));
+
+  double diffRearVel = targetVel * (sqrtNeg - sqrtPos) / (sqrtNeg + sqrtPos);
+  double targetRightFrontVel = targetVel - diffRearVel;
+  double targetLeftFrontVel = targetVel + diffRearVel;
 
   // Update force command.
-  double velEffort = this->dataPtr->leftFrontWheelPid.Update(leftFrontWheelVelComp->Data()[0] - Wlf, _info.dt);
+  double velEffort = this->dataPtr->leftFrontWheelPid.Update(leftFrontWheelVelComp->Data()[0] - targetLeftFrontVel, _info.dt);
   auto leftFrontWheelForceComp = _ecm.Component<gz::sim::components::JointForceCmd>(
       this->dataPtr->leftFrontWheelEntity);
   if (leftFrontWheelForceComp == nullptr)
@@ -507,7 +492,7 @@ void RacecarController::PreUpdate(const gz::sim::UpdateInfo &_info,
     *leftFrontWheelForceComp = gz::sim::components::JointForceCmd({velEffort});
   }
   
-  velEffort = this->dataPtr->rightFrontWheelPid.Update(rightFrontWheelVelComp->Data()[0] - Wrf, _info.dt);
+  velEffort = this->dataPtr->rightFrontWheelPid.Update(rightFrontWheelVelComp->Data()[0] - targetRightFrontVel, _info.dt);
   auto rightFrontWheelForceComp = _ecm.Component<gz::sim::components::JointForceCmd>(
       this->dataPtr->rightFrontWheelEntity);
   if (rightFrontWheelForceComp == nullptr)
@@ -520,7 +505,7 @@ void RacecarController::PreUpdate(const gz::sim::UpdateInfo &_info,
     *rightFrontWheelForceComp = gz::sim::components::JointForceCmd({velEffort});
   }
 
-  velEffort = this->dataPtr->leftRearWheelPid.Update(leftRearWheelVelComp->Data()[0] - Wlr, _info.dt);
+  velEffort = this->dataPtr->leftRearWheelPid.Update(leftRearWheelVelComp->Data()[0] - targetLeftRearVel, _info.dt);
   auto leftRearWheelForceComp = _ecm.Component<gz::sim::components::JointForceCmd>(
       this->dataPtr->leftRearWheelEntity);
   if (leftRearWheelForceComp == nullptr)
@@ -533,7 +518,7 @@ void RacecarController::PreUpdate(const gz::sim::UpdateInfo &_info,
     *leftRearWheelForceComp = gz::sim::components::JointForceCmd({velEffort});
   }
 
-  velEffort = this->dataPtr->rightRearWheelPid.Update(rightRearWheelVelComp->Data()[0] - Wrr, _info.dt);
+  velEffort = this->dataPtr->rightRearWheelPid.Update(rightRearWheelVelComp->Data()[0] - targetRightRearVel, _info.dt);
   auto rightRearWheelForceComp = _ecm.Component<gz::sim::components::JointForceCmd>(
       this->dataPtr->rightRearWheelEntity);
   if (rightRearWheelForceComp == nullptr)
@@ -547,7 +532,7 @@ void RacecarController::PreUpdate(const gz::sim::UpdateInfo &_info,
   }
 
   // Update steering command.
-  double steerEffort = this->dataPtr->leftSteeringPid.Update(leftSteeringPosComp->Data()[0] - Slr, _info.dt);
+  double steerEffort = this->dataPtr->leftSteeringPid.Update(leftSteeringPosComp->Data()[0] - targetLeftSteer, _info.dt);
   auto leftSteeringForceComp = _ecm.Component<gz::sim::components::JointForceCmd>(
       this->dataPtr->leftSteeringEntity);
   if (leftSteeringForceComp == nullptr)
@@ -560,7 +545,7 @@ void RacecarController::PreUpdate(const gz::sim::UpdateInfo &_info,
     *leftSteeringForceComp = gz::sim::components::JointForceCmd({steerEffort});
   }
 
-  steerEffort = this->dataPtr->rightSteeringPid.Update(rightSteeringPosComp->Data()[0] - Srr, _info.dt);
+  steerEffort = this->dataPtr->rightSteeringPid.Update(rightSteeringPosComp->Data()[0] - targetRightSteer, _info.dt);
   auto rightSteeringForceComp = _ecm.Component<gz::sim::components::JointForceCmd>(
       this->dataPtr->rightSteeringEntity);
   if (rightSteeringForceComp == nullptr)
@@ -572,9 +557,6 @@ void RacecarController::PreUpdate(const gz::sim::UpdateInfo &_info,
   {
     *rightSteeringForceComp = gz::sim::components::JointForceCmd({steerEffort});
   }
-
-  this->dataPtr->PublishOdometry(_info.simTime, odometry.get_x(), odometry.get_y(), odometry.get_heading(),
-    odometry.get_linear(), odometry.get_angular());
 
 }
 
@@ -598,86 +580,31 @@ void RacecarControllerPrivate::OnCmdSteer(const gz::msgs::Float &_msg)
 }
 
 //////////////////////////////////////////////////
-void RacecarControllerPrivate::PublishOdometry(
+void RacecarControllerPrivate::PublishEncoder(
   const std::chrono::steady_clock::duration &_now,
-  const double x, const double y, const double heading,
-  const double linear, const double angular)
+  const double _vel, const double _steer)
 {
   if (!this->initialized)
   {
-    this->lastOdomTime = _now;
+    this->lastEncoderTime = _now;
     this->initialized = true;
     return;
   }
 
-  if (_now - this->lastOdomTime < this->odomPeriod)
+  if (_now - this->lastEncoderTime < this->odomPeriod)
     return;
 
-  this->lastOdomTime = _now;
+    // Publish the throttle and steering reference
+  gz::msgs::Float throttleRefMsg;
+  throttleRefMsg.set_data(_vel);
+  this->throttleRefPub.Publish(throttleRefMsg);
 
-  gz::msgs::Header header;
-  header.mutable_stamp()->set_sec(
-      std::chrono::duration_cast<std::chrono::seconds>(_now).count());
-  header.mutable_stamp()->set_nsec(
-      std::chrono::duration_cast<std::chrono::nanoseconds>(_now).count() % 1000000000);
-  
-  auto frame = header.add_data();
-  frame->set_key("frame_id");
-  frame->add_value(this->odomFrame);
-  auto childFrame = header.add_data();
-  childFrame->set_key("child_frame_id");
-  childFrame->add_value(this->robotFrame);
+  gz::msgs::Float steeringRefMsg;
+  steeringRefMsg.set_data(_steer);
+  this->steeringRefPub.Publish(steeringRefMsg);
 
-  gz::msgs::OdometryWithCovariance odomMsg;
-  odomMsg.mutable_header()->CopyFrom(header);
-
-  odomMsg.mutable_pose_with_covariance()->mutable_pose()->mutable_position()->set_x(x);
-  odomMsg.mutable_pose_with_covariance()->mutable_pose()->mutable_position()->set_y(y);
-  odomMsg.mutable_pose_with_covariance()->mutable_pose()->mutable_position()->set_z(0.0);
-  odomMsg.mutable_pose_with_covariance()->mutable_pose()->mutable_orientation()->set_x(0.0);
-  odomMsg.mutable_pose_with_covariance()->mutable_pose()->mutable_orientation()->set_y(0.0);
-  odomMsg.mutable_pose_with_covariance()->mutable_pose()->mutable_orientation()->set_z(sin(heading / 2));
-  odomMsg.mutable_pose_with_covariance()->mutable_pose()->mutable_orientation()->set_w(cos(heading / 2));
-
-  odomMsg.mutable_twist_with_covariance()->mutable_twist()->mutable_linear()->set_x(linear);
-  odomMsg.mutable_twist_with_covariance()->mutable_twist()->mutable_linear()->set_y(0.0);
-  odomMsg.mutable_twist_with_covariance()->mutable_twist()->mutable_linear()->set_z(0.0);
-  odomMsg.mutable_twist_with_covariance()->mutable_twist()->mutable_angular()->set_x(0.0);
-  odomMsg.mutable_twist_with_covariance()->mutable_twist()->mutable_angular()->set_y(0.0);
-  odomMsg.mutable_twist_with_covariance()->mutable_twist()->mutable_angular()->set_z(angular);
-  
-  auto gn2 = this->gaussianNoise * this->gaussianNoise;
-  for (int i = 0; i < 36; i++)
-  {
-    if (i % 7 == 0)
-    {
-      odomMsg.mutable_pose_with_covariance()->
-        mutable_covariance()->add_data(gn2);
-      odomMsg.mutable_twist_with_covariance()->
-        mutable_covariance()->add_data(gn2);
-    }
-    else
-    {
-      odomMsg.mutable_pose_with_covariance()->
-        mutable_covariance()->add_data(0);
-      odomMsg.mutable_twist_with_covariance()->
-        mutable_covariance()->add_data(0);
-    }
-  }
-
-  this->odomPub.Publish(odomMsg);
-
-  if (!this->publishTf)
-    return;
-
-  gz::msgs::Pose_V tfMsg;
-  auto tfMsgPose = tfMsg.add_pose();
-  tfMsgPose->CopyFrom(odomMsg.pose_with_covariance().pose());
-  tfMsgPose->mutable_header()->CopyFrom(header);
-
-  this->tfPub.Publish(tfMsg);
+  this->lastEncoderTime = _now;
 }
-      
 
 GZ_ADD_PLUGIN(RacecarController,
                     gz::sim::System,
