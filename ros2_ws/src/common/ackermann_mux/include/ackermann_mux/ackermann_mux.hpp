@@ -96,9 +96,7 @@ protected:
   std::shared_ptr<velocity_topic_container> velocity_hs_;
   std::shared_ptr<lock_topic_container> lock_hs_;
 
-  // rclcpp::Publisher<ackermann_msgs::msg::AckermannDrive>::SharedPtr cmd_pub_;
-  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr throttle_pub_;
-  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr steering_pub_;
+  rclcpp::Publisher<ackermann_msgs::msg::AckermannDrive>::SharedPtr cmd_pub_;
 
   ackermann_msgs::msg::AckermannDrive last_cmd_;
 

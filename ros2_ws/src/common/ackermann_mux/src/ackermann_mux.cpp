@@ -84,18 +84,18 @@ void AckermannMux::init()
   getTopicHandles("locks", *lock_hs_);
 
   /// Publisher for output topic:
-  // cmd_pub_ =
-  //   this->create_publisher<ackermann_msgs::msg::AckermannDrive>(
-  //   "ackermann_cmd_out",
+  cmd_pub_ =
+    this->create_publisher<ackermann_msgs::msg::AckermannDrive>(
+    "ackermann_cmd_out",
+    rclcpp::QoS(rclcpp::KeepLast(1)));
+  // throttle_pub_ =
+  //   this->create_publisher<std_msgs::msg::Float32>(
+  //   "throttle_cmd_out",
   //   rclcpp::QoS(rclcpp::KeepLast(1)));
-  throttle_pub_ =
-    this->create_publisher<std_msgs::msg::Float32>(
-    "throttle_cmd_out",
-    rclcpp::QoS(rclcpp::KeepLast(1)));
-  steering_pub_ =
-    this->create_publisher<std_msgs::msg::Float32>(
-    "steering_cmd_out",
-    rclcpp::QoS(rclcpp::KeepLast(1)));
+  // steering_pub_ =
+  //   this->create_publisher<std_msgs::msg::Float32>(
+  //   "steering_cmd_out",
+  //   rclcpp::QoS(rclcpp::KeepLast(1)));
 
   /// Diagnostics:
   diagnostics_ = std::make_shared<diagnostics_type>(this);
@@ -117,15 +117,16 @@ void AckermannMux::updateDiagnostics()
 
 void AckermannMux::publishAckermann(const ackermann_msgs::msg::AckermannDrive::ConstSharedPtr & msg)
 {
-  auto throttle_msg = std::make_shared<std_msgs::msg::Float32>();
-  auto steering_msg = std::make_shared<std_msgs::msg::Float32>();
+  cmd_pub_->publish(*msg);
 
-  throttle_msg->data = msg->speed;
-  steering_msg->data = msg->steering_angle;
+  // auto throttle_msg = std::make_shared<std_msgs::msg::Float32>();
+  // auto steering_msg = std::make_shared<std_msgs::msg::Float32>();
 
-  // cmd_pub_->publish(*msg);
-  throttle_pub_->publish(*throttle_msg);
-  steering_pub_->publish(*steering_msg);
+  // throttle_msg->data = msg->speed;
+  // steering_msg->data = msg->steering_angle;
+
+  // throttle_pub_->publish(*throttle_msg);
+  // steering_pub_->publish(*steering_msg);
 }
 
 template<typename T>

@@ -51,7 +51,6 @@ include_directories(include)
 add_library(RacecarController
   SHARED
   src/RacecarController.cc
-  src/steering_odometry.cpp
 )
 
 target_include_directories(

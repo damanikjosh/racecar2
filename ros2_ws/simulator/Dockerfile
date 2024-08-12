@@ -63,6 +63,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     ros-${ROS_DISTRO}-teleop-twist-joy \
     ros-${ROS_DISTRO}-interactive-marker-twist-server \
     ros-${ROS_DISTRO}-twist-mux \
+    ros-${ROS_DISTRO}-realtime-tools \
     ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
     && rm -rf /var/lib/apt/lists/*
 

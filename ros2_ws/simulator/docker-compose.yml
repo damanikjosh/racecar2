@@ -14,9 +14,6 @@ services:
       - /dev/input:/dev/input
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
-      # - .:/test
-      # - ./src/common:/ros2_ws/src/common
-      # - ./src/simulator:/ros2_ws/src/simulator
-    # command: ros2 launch racecar_description description.launch
+      - ../src/common:/ros2_ws/src/common
+      - ../src/simulator:/ros2_ws/src/simulator
     command: ros2 launch racecar_gazebo empty_world.launch
-    # command: gz sim /test/test.sdf
