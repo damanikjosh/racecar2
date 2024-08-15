@@ -15,10 +15,10 @@
       <param from="$(find-pkg-share racecar_control)/config/teleop_ps4.yaml" />
     </node>
   </group>
-  <!-- <group>
-    <push-ros-namespace namespace="twist_marker_server" />
-    <node pkg="interactive_marker_twist_server" exec="marker_server" name="twist_marker_server">
+  <group>
+    <push-ros-namespace namespace="ackermann_marker_server" />
+    <node pkg="interactive_marker_ackermann_server" exec="marker_server" name="ackermann_marker_server">
         <param name="link_name" value="base_link" />
     </node>
-  </group> -->
+  </group>
 </launch>
