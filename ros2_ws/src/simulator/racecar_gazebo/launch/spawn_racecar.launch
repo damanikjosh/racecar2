@@ -29,6 +29,7 @@
               steering/position/command@std_msgs/msg/Float32]gz.msgs.Float
               throttle/velocity/reference@std_msgs/msg/Float32[gz.msgs.Float
               steering/position/reference@std_msgs/msg/Float32[gz.msgs.Float
+              collisions@ros_gz_interfaces/msg/Contacts[gz.msgs.Contacts
               " />
   <!--  Disabled
               tf@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V
