@@ -19,7 +19,6 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     cmake \
     && rm -rf /var/lib/apt/lists/*
 
-
 # Install libzmq
 RUN git clone https://github.com/zeromq/libzmq.git /tmp/libzmq \
     && cd /tmp/libzmq \
