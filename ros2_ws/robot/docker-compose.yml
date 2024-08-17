@@ -1,0 +1,13 @@
+services:
+  ros:
+    image: racecar_robot:latest
+    privileged: true
+    environment:
+      - PYTHONUNBUFFERED=1
+    network_mode: host
+    devices:
+      - /dev/ttyACM0
+      - /dev/input/js0
+    volumes:
+      - /dev/shm:/dev/shm
+    command: ros2 launch racecar_base bringup.launch

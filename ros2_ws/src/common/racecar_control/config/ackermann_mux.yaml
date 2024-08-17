@@ -1,10 +1,6 @@
 ackermann_mux:
   ros__parameters:
     topics:
-      joy:
-        topic   : joy_teleop/ackermann_cmd
-        timeout : 0.5
-        priority: 10
       bt_joy:
         topic   : bluetooth_teleop/ackermann_cmd
         timeout : 0.5

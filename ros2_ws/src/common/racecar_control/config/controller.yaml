@@ -1,5 +1,5 @@
 racecar_controller:
   ros__parameters:
-    wheel_base: 0.356
-    wheel_track: 0.325
-    wheel_radius: 0.069
+    wheel_base: 0.325
+    wheel_track: 0.237
+    wheel_radius: 0.05065
