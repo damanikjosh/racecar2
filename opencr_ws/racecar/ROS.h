@@ -8,16 +8,23 @@
 #include <rcl/error_handling.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
+#include <micro_ros_utilities/string_utilities.h>
+
+
+#include <IMU.h>
 
 #include <std_msgs/msg/float32.h>
+#include <sensor_msgs/msg/imu.h>
 #include "Pitches.h"
 
 volatile float remote_traction, remote_steering;
-volatile unsigned long last_traction_time;
-volatile unsigned long last_steering_time;
+unsigned long last_traction_time;
+unsigned long last_steering_time;
+
+extern "C" int clock_gettime(clockid_t unused, struct timespec *tp);
+
 
 void motorCb(const void* msg_in) {
-  
   const std_msgs__msg__Float32* msg = (const std_msgs__msg__Float32*) msg_in;
   remote_traction = msg->data;
   last_traction_time = millis();
@@ -57,18 +64,83 @@ public:
     playMelody(startup_melody);
   }
 
+  void publishThrottle(float velocity) {
+    velocity_ref_msg.data = velocity;
+    RCSOFTCHECK(rcl_publish(&velocity_publisher, &velocity_ref_msg, NULL));
+  }
+
+  void publishSteering(float steering) {
+    steering_ref_msg.data = steering;
+    RCSOFTCHECK(rcl_publish(&steering_publisher, &steering_ref_msg, NULL));
+  }
+
+  void publishImu(cIMU *imu) {
+    std_msgs__msg__Header header;
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    imu_msg.header.stamp.sec = ts.tv_sec;
+    imu_msg.header.stamp.nanosec = ts.tv_nsec;
+    imu_msg.header.frame_id = micro_ros_string_utilities_set(imu_msg.header.frame_id, "imu_link");
+
+    imu_msg.angular_velocity.x = imu->gyroData[0];
+    imu_msg.angular_velocity.y = imu->gyroData[1];
+    imu_msg.angular_velocity.z = imu->gyroData[2];
+    imu_msg.angular_velocity_covariance[0] = 0.02;
+    imu_msg.angular_velocity_covariance[1] = 0;
+    imu_msg.angular_velocity_covariance[2] = 0;
+    imu_msg.angular_velocity_covariance[3] = 0;
+    imu_msg.angular_velocity_covariance[4] = 0.02;
+    imu_msg.angular_velocity_covariance[5] = 0;
+    imu_msg.angular_velocity_covariance[6] = 0;
+    imu_msg.angular_velocity_covariance[7] = 0;
+    imu_msg.angular_velocity_covariance[8] = 0.02;
+
+    imu_msg.linear_acceleration.x = imu->accData[0];
+    imu_msg.linear_acceleration.y = imu->accData[1];
+    imu_msg.linear_acceleration.z = imu->accData[2];
+    imu_msg.linear_acceleration_covariance[0] = 0.04;
+    imu_msg.linear_acceleration_covariance[1] = 0;
+    imu_msg.linear_acceleration_covariance[2] = 0;
+    imu_msg.linear_acceleration_covariance[3] = 0;
+    imu_msg.linear_acceleration_covariance[4] = 0.04;
+    imu_msg.linear_acceleration_covariance[5] = 0;
+    imu_msg.linear_acceleration_covariance[6] = 0;
+    imu_msg.linear_acceleration_covariance[7] = 0;
+    imu_msg.linear_acceleration_covariance[8] = 0.04;
+
+    imu_msg.orientation.w = imu->quat[0];
+    imu_msg.orientation.x = imu->quat[1];
+    imu_msg.orientation.y = imu->quat[2];
+    imu_msg.orientation.z = imu->quat[3];
+
+    imu_msg.orientation_covariance[0] = 0.0025;
+    imu_msg.orientation_covariance[1] = 0;
+    imu_msg.orientation_covariance[2] = 0;
+    imu_msg.orientation_covariance[3] = 0;
+    imu_msg.orientation_covariance[4] = 0.0025;
+    imu_msg.orientation_covariance[5] = 0;
+    imu_msg.orientation_covariance[6] = 0;
+    imu_msg.orientation_covariance[7] = 0;
+    imu_msg.orientation_covariance[8] = 0.0025;
+
+    RCSOFTCHECK(rcl_publish(&imu_publisher, &imu_msg, NULL));
+  }
+
   void spinOnce() {
     RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1))); // Reduced to 10ms to match timer period
   }
 
 private:
+
   rcl_publisher_t velocity_publisher;
   rcl_publisher_t steering_publisher;
+  rcl_publisher_t imu_publisher;
 
   rcl_subscription_t velocity_subscriber;
   rcl_subscription_t steering_subscriber;
 
   std_msgs__msg__Float32 velocity_cmd_msg, velocity_ref_msg, steering_cmd_msg, steering_ref_msg;
+  sensor_msgs__msg__Imu imu_msg;
   rclc_executor_t executor;
   rclc_support_t support;
   rcl_allocator_t allocator;
@@ -118,6 +190,13 @@ private:
       &node,
       ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
       "steering/position/reference");
+    if (status != RCL_RET_OK) return status;
+
+    status = rclc_publisher_init_best_effort(
+      &imu_publisher,
+      &node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Imu),
+      "imu/data");
     if (status != RCL_RET_OK) return status;
 
     // create executor

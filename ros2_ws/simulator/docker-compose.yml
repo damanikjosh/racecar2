@@ -1,3 +1,5 @@
+networks:
+  ros:
 services:
   ros:
     build:
@@ -5,15 +7,29 @@ services:
       dockerfile: simulator/Dockerfile
     runtime: nvidia
     environment:
-      - DISPLAY=:0
+      - ROS_DOMAIN_ID=24
+      - DISPLAY=novnc:0
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
       - PYTHONUNBUFFERED=1
-      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
     devices:
       - /dev/input:/dev/input
+    networks:
+      - ros
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - ../src/common:/ros2_ws/src/common
       - ../src/simulator:/ros2_ws/src/simulator
-    command: ros2 launch racecar_gazebo empty_world.launch
+      - ../maps:/ros2_ws/maps
+    # command: ros2 launch racecar_helper empty.launch
+    command: ros2 launch racecar_helper map.launch map:=/ros2_ws/maps/berlin/berlin.yaml
+  novnc:
+    image: theasp/novnc:latest
+    environment:
+      - DISPLAY_WIDTH=1920
+      - DISPLAY_HEIGHT=1080
+      - RUN_XTERM=no
+    ports:
+      - "8080:8080"
+    networks:
+      - ros

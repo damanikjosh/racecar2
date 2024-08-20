@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Launch Arguments -->
+  <arg name="autostart" default="true"/>
+  <arg name="scan_topic_name" default="scan"/>
+
+  <!-- Lifecycle Node -->
+  <node
+      pkg="urg_node2"
+      exec="urg_node2_node"
+      name="urg_node2"
+      output="screen"
+      namespace=""
+      >
+      <!-- Remappings -->
+      <remap from="scan" to="$(var scan_topic_name)"/>
+
+      <!-- Parameters -->
+      <param from="$(find-pkg-share racecar_base)/config/urg_node2.yaml" />
+  </node>
+
+  <node name="lidar_lifecycle_manager" 
+        pkg="nav2_lifecycle_manager" 
+        exec="lifecycle_manager" 
+        output="screen">
+    <param name="autostart" value="$(var autostart)"/>
+    <param name="node_names" value="['urg_node2']"/>
+    <param name="bond_timeout" value="0.0"/>
+  </node>
+
+  
+</launch>

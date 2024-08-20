@@ -69,13 +69,15 @@ public:
 
     odom_frequency_ = odom_frequency;
 
+    rclcpp::QoS qos_profile = rclcpp::QoS(10).reliability(rclcpp::ReliabilityPolicy::BestEffort);
+
     // Subscriber setup
     throttle_sub_ = this->create_subscription<std_msgs::msg::Float32>(
-      "throttle/velocity/reference", 10,
+      "throttle/velocity/reference", qos_profile,
       std::bind(&RacecarControllerNode::throttle_callback, this, std::placeholders::_1));
     
     steering_sub_ = this->create_subscription<std_msgs::msg::Float32>(
-      "steering/position/reference", 10,
+      "steering/position/reference", qos_profile,
       std::bind(&RacecarControllerNode::steering_callback, this, std::placeholders::_1));
 
     ackermann_sub_ = this->create_subscription<ackermann_msgs::msg::AckermannDrive>(
@@ -116,8 +118,11 @@ private:
     throttle_msg.data = throttle_cmd;
     steering_msg.data = steering_cmd;
 
+    throttle_pub_->lock();  // Lock before publishing
     throttle_pub_->msg_ = throttle_msg;
     throttle_pub_->unlockAndPublish();
+
+    steering_pub_->lock();
     steering_pub_->msg_ = steering_msg;
     steering_pub_->unlockAndPublish();
   }

@@ -1,7 +1,10 @@
 <?xml version="1.0"?>
 <launch>
+  <include file="$(find-pkg-share racecar_description)/launch/description.launch" />
   <!-- ross2 run micro_ros_agent micro_ros_agent serial dev /dev/ttyACM0 -->
   <node pkg="micro_ros_agent" exec="micro_ros_agent" name="micro_ros_agent" output="screen" args="serial --dev /dev/ttyACM0" />
+
+  <include file="$(find-pkg-share racecar_base)/launch/include/lidar.launch" />
   <include file="$(find-pkg-share racecar_control)/launch/control.launch" />
   <include file="$(find-pkg-share racecar_control)/launch/teleop.launch" />
 </launch>

@@ -10,8 +10,10 @@
 #define TRACTION_HIGH 500
 #define TRACTION_LOW -500
 
-#define STEERING_HIGH 0.785398
-#define STEERING_LOW -0.785398
+#define STEERING_HIGH -0.785398
+#define STEERING_LOW 0.785398
+
+#define STEERING_TRIM -0.07
 
 float mapFloat(float x, float in_min, float in_max, float out_min, float out_max)
 {
@@ -28,7 +30,7 @@ float PWM2Traction(int pwm) {
 }
 
 int steering2PWM(float steering) {
-  return mapFloat(steering, STEERING_LOW, STEERING_HIGH, PWM_LOW, PWM_HIGH);
+  return mapFloat(steering + STEERING_TRIM, STEERING_LOW, STEERING_HIGH, PWM_LOW, PWM_HIGH);
 }
 
 class EMA {
