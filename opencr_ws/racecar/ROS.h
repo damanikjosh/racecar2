@@ -40,41 +40,35 @@ void steeringCb(const void* msg_in) {
 
 class ROS {
   #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){return temp_rc;}}
-  #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){}}
   #define LED_PIN  13
+  #define EXECUTE_EVERY_N_MS(MS, X)  do { \
+    static volatile int64_t init = -1; \
+    if (init == -1) { init = uxr_millis();} \
+    if (uxr_millis() - init > MS) { X; init = uxr_millis();} \
+  } while (0)\
 
 public:
 
   void init() {
+    set_microros_transports();
+
     pinMode(LED_PIN, OUTPUT);
     digitalWrite(LED_PIN, LOW);  
 
-    while (init_micro_ros() != RCL_RET_OK) {
-      // Flash LED to indicate retrying
-      for (int i = 0; i < 3; i++) {
-        digitalWrite(LED_PIN, HIGH);
-        // playMelody(error_melody);
-        delay(100);
-        digitalWrite(LED_PIN, LOW);
-        delay(100);
-      }
-    }
-
-    digitalWrite(LED_PIN, HIGH);
-    playMelody(startup_melody);
+    state = WAITING_AGENT;
   }
 
-  void publishThrottle(float velocity) {
+  rcl_ret_t publishThrottle(float velocity) {
     velocity_ref_msg.data = velocity;
-    RCSOFTCHECK(rcl_publish(&velocity_publisher, &velocity_ref_msg, NULL));
+    RCCHECK(rcl_publish(&velocity_publisher, &velocity_ref_msg, NULL));
   }
 
-  void publishSteering(float steering) {
+  rcl_ret_t publishSteering(float steering) {
     steering_ref_msg.data = steering;
-    RCSOFTCHECK(rcl_publish(&steering_publisher, &steering_ref_msg, NULL));
+    RCCHECK(rcl_publish(&steering_publisher, &steering_ref_msg, NULL));
   }
 
-  void publishImu(cIMU *imu) {
+  rcl_ret_t publishImu(cIMU *imu) {
     std_msgs__msg__Header header;
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
@@ -123,14 +117,50 @@ public:
     imu_msg.orientation_covariance[7] = 0;
     imu_msg.orientation_covariance[8] = 0.0025;
 
-    RCSOFTCHECK(rcl_publish(&imu_publisher, &imu_msg, NULL));
+    RCCHECK(rcl_publish(&imu_publisher, &imu_msg, NULL));
   }
 
-  void spinOnce() {
-    RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1))); // Reduced to 10ms to match timer period
+  rcl_ret_t spinOnce() {
+    switch (state) {
+      case WAITING_AGENT:
+        EXECUTE_EVERY_N_MS(500, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_AVAILABLE : WAITING_AGENT;);
+        break;
+      case AGENT_AVAILABLE:
+        if (RCL_RET_OK == create_entities()) {
+          state = AGENT_CONNECTED;
+          digitalWrite(LED_PIN, HIGH);
+          playMelody(startup_melody);
+        } else {
+          state = WAITING_AGENT;
+          destroy_entities();
+        }
+        break;
+      case AGENT_CONNECTED:
+        EXECUTE_EVERY_N_MS(200, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_CONNECTED : AGENT_DISCONNECTED;);
+        if (state == AGENT_CONNECTED) {
+          rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1));
+        }
+        break;
+      case AGENT_DISCONNECTED:
+        destroy_entities();
+        state = WAITING_AGENT;
+        digitalWrite(LED_PIN, LOW);
+        playMelody(shutdown_melody);
+        break;
+      default:
+        break;
+
+    }
   }
 
 private:
+
+  enum states {
+    WAITING_AGENT,
+    AGENT_AVAILABLE,
+    AGENT_CONNECTED,
+    AGENT_DISCONNECTED
+  } state;
 
   rcl_publisher_t velocity_publisher;
   rcl_publisher_t steering_publisher;
@@ -147,75 +177,71 @@ private:
   rcl_node_t node;
   rcl_timer_t timer;
 
-  rcl_ret_t init_micro_ros() {
+  rcl_ret_t create_entities() {
 
-    rcl_ret_t status;
 
-    set_microros_transports();
     allocator = rcl_get_default_allocator();
 
     //create init_options
-    status = rclc_support_init(&support, 0, NULL, &allocator);
-    if (status != RCL_RET_OK) return status;
+    RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
 
     // create node
-    status = rclc_node_init_default(&node, "racecar_base", "", &support);
-    if (status != RCL_RET_OK) return status;
+    RCCHECK(rclc_node_init_default(&node, "racecar_base", "", &support));
 
     // create subscriber
-    status = rclc_subscription_init_best_effort(
+    RCCHECK(rclc_subscription_init_best_effort(
       &velocity_subscriber,
       &node,
       ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
-      "throttle/velocity/command");
-    if (status != RCL_RET_OK) return status;
+      "throttle/velocity/command"));
     
-    status = rclc_publisher_init_best_effort(
+    RCCHECK(rclc_publisher_init_best_effort(
       &velocity_publisher,
       &node,
       ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
-      "throttle/velocity/reference");
-    if (status != RCL_RET_OK) return status;
+      "throttle/velocity/reference"));
   
       // create subscriber
-    status = rclc_subscription_init_best_effort(
+    RCCHECK(rclc_subscription_init_best_effort(
       &steering_subscriber,
       &node,
       ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
-      "steering/position/command");
-    if (status != RCL_RET_OK) return status;
+      "steering/position/command"));
     
-    status = rclc_publisher_init_best_effort(
+    RCCHECK(rclc_publisher_init_best_effort(
       &steering_publisher,
       &node,
       ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
-      "steering/position/reference");
-    if (status != RCL_RET_OK) return status;
+      "steering/position/reference"));
 
-    status = rclc_publisher_init_best_effort(
+    RCCHECK(rclc_publisher_init_best_effort(
       &imu_publisher,
       &node,
       ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Imu),
-      "imu/data");
-    if (status != RCL_RET_OK) return status;
+      "imu/data"));
 
     // create executor
-    status = rclc_executor_init(&executor, &support.context, 2, &allocator);
-    if (status != RCL_RET_OK) return status;
-    status = rclc_executor_add_subscription(&executor, &velocity_subscriber, &velocity_cmd_msg, motorCb, ON_NEW_DATA);
-    if (status != RCL_RET_OK) return status;
-    status = rclc_executor_add_subscription(&executor, &steering_subscriber, &steering_cmd_msg, steeringCb, ON_NEW_DATA);
-    if (status != RCL_RET_OK) return status;
+    executor = rclc_executor_get_zero_initialized_executor();
+
+    RCCHECK(rclc_executor_init(&executor, &support.context, 2, &allocator));
+    RCCHECK(rclc_executor_add_subscription(&executor, &velocity_subscriber, &velocity_cmd_msg, motorCb, ON_NEW_DATA));
+    RCCHECK(rclc_executor_add_subscription(&executor, &steering_subscriber, &steering_cmd_msg, steeringCb, ON_NEW_DATA));
 
     return RCL_RET_OK;
   }
 
+  void destroy_entities()
+  {
+    rmw_context_t * rmw_context = rcl_context_get_rmw_context(&support.context);
+    (void) rmw_uros_set_context_entity_destroy_session_timeout(rmw_context, 0);
 
-  void error_loop(){
-    while(1){
-      digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-      delay(100);
-    }
+    rcl_publisher_fini(&imu_publisher, &node);
+    rcl_publisher_fini(&steering_publisher, &node);
+    rcl_publisher_fini(&velocity_publisher, &node);
+
+    rclc_executor_fini(&executor);
+    rcl_node_fini(&node);
+    rclc_support_fini(&support);
   }
 };
 

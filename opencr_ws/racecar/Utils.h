@@ -1,7 +1,7 @@
 #ifndef Utils_H
 #define Utils_H
 
-#define GEAR_RATIO 2.8
+#define GEAR_RATIO 6
 
 #define PWM_HIGH 2000
 #define PWM_NEUTRAL 1500
@@ -10,10 +10,10 @@
 #define TRACTION_HIGH 500
 #define TRACTION_LOW -500
 
-#define STEERING_HIGH -0.785398
-#define STEERING_LOW 0.785398
+#define STEERING_HIGH -0.63555202553572
+#define STEERING_LOW 0.63555202553572
 
-#define STEERING_TRIM -0.07
+#define STEERING_TRIM -0.05
 
 float mapFloat(float x, float in_min, float in_max, float out_min, float out_max)
 {
