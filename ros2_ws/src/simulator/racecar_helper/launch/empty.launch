@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="gui" default="true" />
+  <arg name="headless" default="false" />
+  <arg name="world_name" default="empty.sdf" />
+  <arg name="joystick" default="true" />
+
+  <!-- ros_gz_sim gz_sim.launch.py -->
+  <include file="$(find-pkg-share ros_gz_sim)/launch/gz_sim.launch.py">
+    <arg name="gz_args" value="-r -v 4 $(var world_name) $(if $(var gui), , -s)"/>
+    <arg name="gui" value="$(var gui)" />
+    <arg name="headless" value="$(var headless)" />
+  </include>
+
+  <include file="$(find-pkg-share racecar_gazebo)/launch/spawn_racecar.launch">
+    <arg name="x" value="0" />
+    <arg name="y" value="0" />
+    <arg name="z" value="0.1" />
+    <arg name="yaw" value="0.0" />
+    <arg name="joystick" value="$(var joystick)" />
+  </include>
+</launch>

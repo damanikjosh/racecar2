@@ -44,5 +44,7 @@
   <include file="$(find-pkg-share racecar_control)/launch/control.launch">
     <arg name="use_sim_time" value="true" />
   </include>
-  <include file="$(find-pkg-share racecar_control)/launch/teleop.launch" />
+  <include file="$(find-pkg-share racecar_control)/launch/teleop.launch">
+    <arg name="joystick" value="$(var joystick)" />
+  </include>
 </launch>

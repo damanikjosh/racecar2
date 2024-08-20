@@ -24,7 +24,11 @@ void RacecarOdometry::init() {
 void RacecarOdometry::update(double throttle_velocity, double steering_angle, double dt) {
   steering_angle_ = steering_angle;
   double v = throttle_velocity * wheel_radius_;  // Assuming wheel_radius_ is correctly set to account for the actual wheel radius.
-  double w = std::tan(steering_angle) * v / wheel_base_;  // Corrected formula using tan for better accuracy at larger angles.
+  if (is_close_to_zero(steering_angle)) {
+    update_odometry(v, 0.0, dt);
+    return;
+  }
+  double w = v * std::tan(steering_angle) / wheel_base_;
   update_odometry(v, w, dt);
 }
 

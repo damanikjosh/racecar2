@@ -19,17 +19,21 @@ WORKDIR /ros2_ws/src
 
 # Clone micro ROS
 RUN git clone -b ${ROS_DISTRO} https://github.com/micro-ROS/micro_ros_msgs
-RUN git clone -b $ROS_DISTRO https://github.com/micro-ROS/micro-ROS-Agent
+RUN git clone -b ${ROS_DISTRO} https://github.com/micro-ROS/micro-ROS-Agent
+RUN git clone --recursive https://github.com/Hokuyo-aut/urg_node2.git
 
 # Install ros dependencies
 RUN apt-get update && apt-get install --no-install-recommends -y \
+    ros-${ROS_DISTRO}-xacro \
     ros-${ROS_DISTRO}-ackermann-msgs \
     ros-${ROS_DISTRO}-robot-localization \
-    ros-${ROS_DISTRO}-joy \
+    ros-${ROS_DISTRO}-joy-linux \
     ros-${ROS_DISTRO}-teleop-twist-joy \
     ros-${ROS_DISTRO}-interactive-marker-twist-server \
     ros-${ROS_DISTRO}-twist-mux \
     ros-${ROS_DISTRO}-realtime-tools \
+    ros-${ROS_DISTRO}-laser-proc \
+    ros-${ROS_DISTRO}-nav2-lifecycle-manager \
     && rm -rf /var/lib/apt/lists/*
 
     

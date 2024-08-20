@@ -45,9 +45,9 @@ limitations under the License.
 
   <!-- chassis_length is measured along the x axis, chassis_width
        along the y axis, and chassis_height along the z axis. -->
-  <xacro:property name="chassis_length" value="0.680"/>
-  <xacro:property name="chassis_width" value="0.160"/>
-  <xacro:property name="chassis_height" value="0.01"/>
+  <xacro:property name="chassis_length" value="0.5"/>
+  <xacro:property name="chassis_width" value="0.173"/>
+  <xacro:property name="chassis_height" value="0.06"/>
   <xacro:property name="chassis_mass" value="2.788"/>
 
   <!-- battery_dist is the distance between the inner edges of the
@@ -72,9 +72,9 @@ limitations under the License.
   <!--xacro:property name="tire_dia" value="0.138"/-->
   <!--xacro:property name="tire_width" value="0.0889"/-->
   <!--xacro:property name="hex_hub_depth" value="0.01445"/-->
-  <xacro:property name="hub_dia" value="0.102"/>
-  <xacro:property name="tire_dia" value="0.138"/>
-  <xacro:property name="tire_width" value="0.06"/>
+  <xacro:property name="hub_dia" value="0.061"/>
+  <xacro:property name="tire_dia" value="0.1013"/>
+  <xacro:property name="tire_width" value="0.0431"/>
   <xacro:property name="hex_hub_depth" value="0.0"/>
   <xacro:property name="wheel_mass" value="0.29"/>
 
@@ -82,10 +82,10 @@ limitations under the License.
        the shock absorbers are fully extended. axle_length is the distance
        from a U joint to the corresponding hex hub. wheel_travel is the
        vertical wheel travel. -->
-  <xacro:property name="wheelbase" value="0.356"/>
-  <xacro:property name="hex_hub_dist" value="0.385"/>
-  <xacro:property name="axle_length" value="0.03"/>
-  <xacro:property name="wheel_travel" value="0.084"/>
+  <xacro:property name="wheelbase" value="0.320"/>
+  <xacro:property name="hex_hub_dist" value="0.34"/>
+  <xacro:property name="axle_length" value="0.02"/>
+  <xacro:property name="wheel_travel" value="0.042"/>
   <xacro:property name="shock_z_offset" value="0.07"/>
 
   <!-- shock_eff_limit is 2 * ((shock_stroke / 2) * shock_spring_constant) N.
@@ -454,7 +454,7 @@ limitations under the License.
   </gazebo>
 
   <joint name="imu_joint" type="fixed">
-    <origin xyz="0 0 0.008" rpy="0 0 0" />
+    <origin xyz="-0.07 0 0.0095" rpy="0 ${degrees_90 * 2} 0" />
     <parent link="chassis" />
     <child link="imu_link" />
   </joint>
@@ -562,9 +562,6 @@ limitations under the License.
   </gazebo> -->
 
   <gazebo>
-    <!-- <plugin filename="libgz_ros2_control-system.so" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
-      <parameters>$(find racecar_gazebo)/config/control_params.yaml</parameters>
-    </plugin> -->
     <plugin
       filename="gz-sim-joint-state-publisher-system"
       name="gz::sim::systems::JointStatePublisher">

@@ -11,11 +11,11 @@ bluetooth_teleop:
       axis_angular:
         yaw: 2
       scale_angular:
-        yaw: -0.5
+        yaw: 0.5
       scale_angular_turbo:
-        yaw: -0.2
-      enable_button: 9
-      enable_turbo_button: 10
+        yaw: 0.2
+      enable_button: 4
+      enable_turbo_button: 5
 
   joy_node:
     ros__parameters:

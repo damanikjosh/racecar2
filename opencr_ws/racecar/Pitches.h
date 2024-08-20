@@ -103,6 +103,7 @@ struct Melody
 };
 
 Melody startup_melody = {{NOTE_C4, NOTE_E4, NOTE_G4, NOTE_C5}, {8, 8, 8, 4}};
+Melody shutdown_melody = {{NOTE_C5, NOTE_G4, NOTE_E4, NOTE_C4}, {8, 8, 8, 4}};
 Melody error_melody = {{NOTE_C4}, {8}};
 
 void playMelody(Melody melody) {
