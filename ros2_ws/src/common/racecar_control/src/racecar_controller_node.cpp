@@ -15,7 +15,7 @@ public:
     // Publisher setup
     auto odom_pub = this->create_publisher<nav_msgs::msg::Odometry>("odom", 10);
     odom_pub_.reset(new realtime_tools::RealtimePublisher<nav_msgs::msg::Odometry>(odom_pub));
-    auto throttle_pub = this->create_publisher<std_msgs::msg::Float32>("throttle/velocity/command", 10);
+    auto throttle_pub = this->create_publisher<std_msgs::msg::Float32>("throttle/speed/command", 10);
     throttle_pub_.reset(new realtime_tools::RealtimePublisher<std_msgs::msg::Float32>(throttle_pub));
     auto steering_pub = this->create_publisher<std_msgs::msg::Float32>("steering/position/command", 10);
     steering_pub_.reset(new realtime_tools::RealtimePublisher<std_msgs::msg::Float32>(steering_pub));
@@ -73,7 +73,7 @@ public:
 
     // Subscriber setup
     throttle_sub_ = this->create_subscription<std_msgs::msg::Float32>(
-      "throttle/velocity/reference", qos_profile,
+      "throttle/speed/reference", qos_profile,
       std::bind(&RacecarControllerNode::throttle_callback, this, std::placeholders::_1));
     
     steering_sub_ = this->create_subscription<std_msgs::msg::Float32>(

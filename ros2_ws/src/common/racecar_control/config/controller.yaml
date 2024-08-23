@@ -3,3 +3,5 @@ racecar_controller:
     wheel_base: 0.320
     wheel_track: 0.3
     wheel_radius: 0.05075
+    pose_covariance: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+    twist_covariance: [0.001, 0.001, 0.001, 0.001, 0.001, 0.001]

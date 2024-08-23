@@ -3,6 +3,11 @@ services:
     image: racecar_robot:latest
     environment:
       - PYTHONUNBUFFERED=1
+      - ROS_DOMAIN_ID=16
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+    runtime: nvidia
     network_mode: host
     devices:
       - /dev/ttyACM0:/dev/ttyACM0
