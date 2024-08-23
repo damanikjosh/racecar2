@@ -1,4 +1,4 @@
-ARG ROS_DISTRO=${ROS_DISTRO:-jazzy}
+ARG ROS_DISTRO=${ROS_DISTRO:-humble}
 
 FROM osrf/ros:${ROS_DISTRO}-desktop-full
 LABEL authors="Joshua J. Damanik <joshuajdmk@gmail.com>"
