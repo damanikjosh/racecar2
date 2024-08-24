@@ -73,6 +73,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     ros-jazzy-realtime-tools \
     ros-jazzy-laser-proc \
     ros-jazzy-nav2-lifecycle-manager \
+    ros-jazzy-nav2-bringup \
     ros-jazzy-serial-driver \
     ros-jazzy-asio-cmake-module \
     ros-jazzy-rmw-cyclonedds-cpp \

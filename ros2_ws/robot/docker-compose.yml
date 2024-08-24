@@ -6,7 +6,6 @@ services:
       - ROS_DOMAIN_ID=16
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
-      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
     runtime: nvidia
     network_mode: host
     devices:
@@ -16,4 +15,4 @@ services:
       - /dev/shm:/dev/shm
       - ../src/common:/ros2_ws/src/common
       - ../src/robot:/ros2_ws/src/robot
-    command: ros2 launch racecar_base bringup.launch
+    command: ros2 launch racecar_base slam.launch
