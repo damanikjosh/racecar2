@@ -341,11 +341,11 @@ void VescDriver::positionCallback(const Float32::SharedPtr position)
 void VescDriver::servoCallback(const Float32::SharedPtr servo)
 {
   if (driver_mode_ == MODE_OPERATING) {
-    double servo_clipped(servo_limit_.clip((servo->data - 0.03) / (-0.63555202553572 * 2.0) + 0.5));
+    double servo_clipped(servo_limit_.clip((servo->data - 0.03) / (-0.6 * 2.0) + 0.5));
     vesc_.setServo(servo_clipped);
     // publish clipped servo value as a "sensor"
     auto servo_sensor_msg = Float32();
-    servo_sensor_msg.data = (servo_clipped - 0.5) * (-0.63555202553572 * 2.0) + 0.03;
+    servo_sensor_msg.data = (servo_clipped - 0.5) * (-0.6 * 2.0) + 0.03;
     servo_sensor_pub_->publish(servo_sensor_msg);
   }
 }
