@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <include file="$(find-pkg-share f1tenth_gym_ros)/launch/gym_bridge_launch.py" />
+  <include file="$(find-pkg-share racecar_control)/launch/control.launch" />
+  <include file="$(find-pkg-share racecar_control)/launch/teleop.launch" />
+  <include file="$(find-pkg-share particle_filter)/launch/particle_filter.launch" />
+</launch>

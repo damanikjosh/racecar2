@@ -38,6 +38,10 @@ limitations under the License.
 
 
 <robot name="racecar" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- Argument prefix -->
+  <xacro:arg name="robot_prefix" default=""/>
+  <xacro:property name="robot_prefix" value="$(arg robot_prefix)"/>
   
   <!-- Degree-to-radian conversions -->
   <xacro:property name="degrees_45" value="0.785398163"/> 
@@ -180,28 +184,28 @@ limitations under the License.
 
   <!-- Battery -->
   <xacro:macro name="battery" params="prefix reflect">
-    <joint name="chassis_to_${prefix}_battery" type="fixed">
-      <parent link="chassis"/>
-      <child link="${prefix}_battery_offset"/>
+    <joint name="${robot_prefix}chassis_to_${prefix}_battery" type="fixed">
+      <parent link="${robot_prefix}chassis"/>
+      <child link="${robot_prefix}${prefix}_battery_offset"/>
       <origin xyz="${battery_x_offset - battery_length / 2}
                    ${reflect * battery_dist / 2}
                    0"
               rpy="${reflect * battery_comp_angle} 0 0"/>
     </joint>
 
-    <link name="${prefix}_battery_offset">
+    <link name="${robot_prefix}${prefix}_battery_offset">
       <xacro:null_inertial/>
     </link>
 
-    <joint name="offset_to_${prefix}_battery" type="fixed">
-      <parent link="${prefix}_battery_offset"/>
-      <child link="${prefix}_battery"/>
+    <joint name="${robot_prefix}offset_to_${prefix}_battery" type="fixed">
+      <parent link="${robot_prefix}${prefix}_battery_offset"/>
+      <child link="${robot_prefix}${prefix}_battery"/>
       <origin xyz="0
                    ${reflect * battery_width / 2}
                    ${(battery_height / 2) - battery_comp_depth}"/>
     </joint>
 
-    <link name="${prefix}_battery">
+    <link name="${robot_prefix}${prefix}_battery">
       <visual>
         <geometry>
           <box size="${battery_length} ${battery_width} ${battery_height}"/>
@@ -222,7 +226,7 @@ limitations under the License.
       </xacro:solid_cuboid_inertial>
     </link>
 
-    <gazebo reference="${prefix}_battery">
+    <gazebo reference="${robot_prefix}${prefix}_battery">
       <material>Gazebo/Blue</material>
     </gazebo>
   </xacro:macro>
@@ -230,10 +234,10 @@ limitations under the License.
   <!-- Shock absorber -->
   <xacro:macro name="shock"
                params="lr_prefix fr_prefix lr_reflect fr_reflect child">
-    <joint name="${lr_prefix}_${fr_prefix}_shock" type="prismatic">
-    <!-- <joint name="${lr_prefix}_${fr_prefix}_shock" type="fixed"> -->
-      <parent link="chassis"/>
-      <child link="${child}"/>
+    <joint name="${robot_prefix}${lr_prefix}_${fr_prefix}_shock" type="prismatic">
+    <!-- <joint name="${robot_prefix}${lr_prefix}_${fr_prefix}_shock" type="fixed"> -->
+      <parent link="${robot_prefix}chassis"/>
+      <child link="${robot_prefix}${child}"/>
 
       <origin xyz="${fr_reflect * wheelbase / 2}
                    ${lr_reflect * ((hex_hub_dist / 2) - axle_length)}
@@ -243,7 +247,7 @@ limitations under the License.
       <limit lower="${-wheel_travel / 2}" upper="${wheel_travel / 2}"
              effort="${shock_eff_limit}" velocity="${shock_vel_limit}"/>
     </joint>
-    <gazebo reference="${lr_prefix}_${fr_prefix}_shock">
+    <gazebo reference="${robot_prefix}${lr_prefix}_${fr_prefix}_shock">
       <implicitSpringDamper>true</implicitSpringDamper>
       <springStiffness>10000</springStiffness>
       <springReference>0.0</springReference>
@@ -251,7 +255,7 @@ limitations under the License.
   </xacro:macro>
 
   <xacro:macro name="shock_trans" params="lr_prefix fr_prefix">
-    <joint name="${lr_prefix}_${fr_prefix}_shock">
+    <joint name="${robot_prefix}${lr_prefix}_${fr_prefix}_shock">
       <command_interface name="effort">
         <param name="min">-${shock_eff_limit}</param>
         <param name="max">${shock_eff_limit}</param>
@@ -271,15 +275,15 @@ limitations under the License.
 
   <!-- The "wheel" macro defines an axle carrier, axle, and wheel. -->
   <xacro:macro name="wheel" params="lr_prefix fr_prefix lr_reflect">
-    <link name="${lr_prefix}_${fr_prefix}_axle_carrier">
+    <link name="${robot_prefix}${lr_prefix}_${fr_prefix}_axle_carrier">
       <xacro:null_inertial/>
     </link>
 
     <!-- The left and right axles have the same axis so that identical
          rotation values cause the wheels to rotate in the same direction. -->
-    <joint name="${lr_prefix}_${fr_prefix}_axle" type="continuous">
-      <parent link="${lr_prefix}_${fr_prefix}_axle_carrier"/>
-      <child link="${lr_prefix}_${fr_prefix}_wheel"/>
+    <joint name="${robot_prefix}${lr_prefix}_${fr_prefix}_axle" type="continuous">
+      <parent link="${robot_prefix}${lr_prefix}_${fr_prefix}_axle_carrier"/>
+      <child link="${robot_prefix}${lr_prefix}_${fr_prefix}_wheel"/>
       <origin rpy="${degrees_90} 0 0"/>
       <axis xyz="0 0 -1"/>
       <dynamics damping="0.2" />
@@ -287,7 +291,7 @@ limitations under the License.
     </joint>
     <!-- <transmission name="${lr_prefix}_${fr_prefix}_axle_trans">
       <type>transmission_interface/SimpleTransmission</type>
-      <joint name="${lr_prefix}_${fr_prefix}_axle">
+      <joint name="${robot_prefix}${lr_prefix}_${fr_prefix}_axle">
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
       </joint>
       <actuator name="${lr_prefix}_${fr_prefix}_axle_act">
@@ -296,7 +300,7 @@ limitations under the License.
       </actuator>
     </transmission> -->
 
-    <link name="${lr_prefix}_${fr_prefix}_wheel">
+    <link name="${robot_prefix}${lr_prefix}_${fr_prefix}_wheel">
       <visual>
         <origin xyz="0
                      ${lr_reflect * (axle_length - (tire_width / 
@@ -323,7 +327,7 @@ limitations under the License.
           height="${tire_width}" mass="${wheel_mass}"/>
     </link>
 
-    <gazebo reference="${lr_prefix}_${fr_prefix}_wheel">
+    <gazebo reference="${robot_prefix}${lr_prefix}_${fr_prefix}_wheel">
       <material>Gazebo/Black</material>
       <selfCollide>false</selfCollide>
       <mu1 value="5.0"/>
@@ -350,7 +354,7 @@ limitations under the License.
   </xacro:macro>
 
   <xacro:macro name="wheel_trans" params="lr_prefix fr_prefix">
-    <joint name="${lr_prefix}_${fr_prefix}_axle">
+    <joint name="${robot_prefix}${lr_prefix}_${fr_prefix}_axle">
       <!-- <command_interface name="effort"> -->
       <state_interface name="effort">
         <param name="min">-${axle_eff_limit}</param>
@@ -376,20 +380,20 @@ limitations under the License.
                  lr_reflect="${lr_reflect}" fr_reflect="${fr_reflect}"
                  child="${lr_prefix}_steering_link"/>
 
-    <link name="${lr_prefix}_steering_link">
+    <link name="${robot_prefix}${lr_prefix}_steering_link">
       <xacro:null_inertial/>
     </link>
 
-    <joint name="${lr_prefix}_steering_joint" type="revolute">
-      <parent link="${lr_prefix}_steering_link"/>
-      <child link="${lr_prefix}_${fr_prefix}_axle_carrier"/>
+    <joint name="${robot_prefix}${lr_prefix}_steering_joint" type="revolute">
+      <parent link="${robot_prefix}${lr_prefix}_steering_link"/>
+      <child link="${robot_prefix}${lr_prefix}_${fr_prefix}_axle_carrier"/>
       <axis xyz="0 0 1"/>
       <dynamics damping="0.2" />
       <limit lower="${-degrees_45}" upper="${degrees_45}"
              effort="${servo_stall_torque}" velocity="${servo_no_load_speed}"/>
     </joint>
 
-    <gazebo reference="${lr_prefix}_steering_joint">
+    <gazebo reference="${robot_prefix}${lr_prefix}_steering_joint">
       <selfCollide>false</selfCollide>
       <mu1 value="1.5"/>
       <mu2 value="1.0"/>
@@ -399,7 +403,7 @@ limitations under the License.
     </gazebo>
     <!-- <transmission name="${lr_prefix}_steering_trans">
       <type>transmission_interface/SimpleTransmission</type>
-      <joint name="${lr_prefix}_steering_joint">
+      <joint name="${robot_prefix}${lr_prefix}_steering_joint">
         <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
       </joint>
       <actuator name="${lr_prefix}_steering_act">
@@ -413,7 +417,7 @@ limitations under the License.
   </xacro:macro>
 
   <xacro:macro name="steering_trans" params="lr_prefix">
-    <joint name="${lr_prefix}_steering_joint">
+    <joint name="${robot_prefix}${lr_prefix}_steering_joint">
       <command_interface name="effort">
         <param name="min">-${servo_stall_torque}</param>
         <param name="max">${servo_stall_torque}</param>
@@ -441,7 +445,7 @@ limitations under the License.
 
   <!-- base_link must have geometry so that its axes can be displayed in
        rviz. -->
-  <link name="base_link">
+  <link name="${robot_prefix}base_link">
     <visual>
       <geometry>
         <box size="0.01 0.01 0.01"/>
@@ -449,16 +453,16 @@ limitations under the License.
       <material name="gray"/>
     </visual>
   </link>
-  <gazebo reference="base_link">
+  <gazebo reference="${robot_prefix}base_link">
     <material>Gazebo/Grey</material>
   </gazebo>
 
-  <joint name="imu_joint" type="fixed">
+  <joint name="${robot_prefix}imu_joint" type="fixed">
     <origin xyz="-0.07 0 0.0095" rpy="0 ${degrees_90 * 2} 0" />
-    <parent link="chassis" />
-    <child link="imu_link" />
+    <parent link="${robot_prefix}chassis" />
+    <child link="${robot_prefix}imu_link" />
   </joint>
-  <link name="imu_link">
+  <link name="${robot_prefix}imu_link">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <mass value="0.001" />
@@ -469,7 +473,7 @@ limitations under the License.
   </link>
 
   <!-- Chassis -->
-  <link name="chassis">
+  <link name="${robot_prefix}chassis">
     <visual>
       <origin xyz="0 0 ${-chassis_height / 2}"/>
       <geometry>
@@ -493,7 +497,7 @@ limitations under the License.
 
     
   </link>
-  <gazebo reference="chassis">
+  <gazebo reference="${robot_prefix}chassis">
     <material>Gazebo/Grey</material>
     <sensor name='sensor_contact' type='contact'>
       <contact>
@@ -505,9 +509,9 @@ limitations under the License.
     </sensor>
   </gazebo>
 
-  <joint name="base_link_to_chasis" type="fixed">
-    <parent link="base_link"/>
-    <child link="chassis"/>
+  <joint name="${robot_prefix}base_link_to_chasis" type="fixed">
+    <parent link="${robot_prefix}base_link"/>
+    <child link="${robot_prefix}chassis"/>
   </joint>
 
   <!-- Batteries -->
@@ -534,7 +538,7 @@ limitations under the License.
     </plugin>
   </gazebo>
 
-  <gazebo reference="imu_link">
+  <gazebo reference="${robot_prefix}imu_link">
     <sensor name="imu_sensor" type="imu">
       <topic>imu/data</topic>
       <always_on>1</always_on>
@@ -572,12 +576,12 @@ limitations under the License.
       name="gz::sim::systems::Contact">
     </plugin>
     <plugin name="racecar_gazebo::RacecarController" filename="libRacecarController.so">
-      <left_front_wheel_joint>left_front_axle</left_front_wheel_joint>
-      <right_front_wheel_joint>right_front_axle</right_front_wheel_joint>
-      <left_rear_wheel_joint>left_rear_axle</left_rear_wheel_joint>
-      <right_rear_wheel_joint>right_rear_axle</right_rear_wheel_joint>
-      <left_steering_joint>left_steering_joint</left_steering_joint>
-      <right_steering_joint>right_steering_joint</right_steering_joint>
+      <left_front_wheel_joint>${robot_prefix}left_front_axle</left_front_wheel_joint>
+      <right_front_wheel_joint>${robot_prefix}right_front_axle</right_front_wheel_joint>
+      <left_rear_wheel_joint>${robot_prefix}left_rear_axle</left_rear_wheel_joint>
+      <right_rear_wheel_joint>${robot_prefix}right_rear_axle</right_rear_wheel_joint>
+      <left_steering_joint>${robot_prefix}left_steering_joint</left_steering_joint>
+      <right_steering_joint>${robot_prefix}right_steering_joint</right_steering_joint>
       <wheel_base>${wheelbase}</wheel_base> <!-- Replace with actual value -->
       <track_width>${hex_hub_dist - 2 * axle_length}</track_width> <!-- Replace with actual value -->
       <wheel_radius>${tire_dia / 2}</wheel_radius> <!-- Replace with actual value -->

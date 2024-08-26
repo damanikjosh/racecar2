@@ -1,10 +1,15 @@
-ARG ROS_DISTRO=${ROS_DISTRO:-humble}
-
-FROM osrf/ros:${ROS_DISTRO}-desktop-full
+FROM ros:humble-ros-base
 LABEL authors="Joshua J. Damanik <joshuajdmk@gmail.com>"
 LABEL version="0.0.1"
 
+
 ENV DEBIAN_FRONTEND=noninteractive
+
+RUN if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then \
+      sed -i 's|http://ports.ubuntu.com/ubuntu-ports|http://ftp.kaist.ac.kr/ubuntu-ports|g' /etc/apt/sources.list.d/ubuntu.sources; \
+    else \
+      sed -i 's|http://ports.ubuntu.com/ubuntu-ports|http://ftp.kaist.ac.kr/ubuntu-ports|g' /etc/apt/sources.list; \
+    fi
 
 # Install some basic dependencies
 RUN apt-get update && apt-get install --no-install-recommends -y \
@@ -13,43 +18,55 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install CUDA
-RUN curl -O https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb \
-    && dpkg -i cuda-keyring_1.1-1_all.deb \
-    && rm cuda-keyring_1.1-1_all.deb
+# nvidia-l4t-core is a dependency for the rest
+# of the packages, and is designed to be installed directly
+# on the target device. This because it parses /proc/device-tree
+# in the deb's .preinst script. Looks like we can bypass it though:
 
-RUN apt-get update && apt-get install -y \
-    cuda-cudart-dev-12-6 \
-    cuda-nvcc-12-6 \
+RUN apt-key adv --fetch-key http://repo.download.nvidia.com/jetson/jetson-ota-public.asc \
+    && echo "deb https://repo.download.nvidia.com/jetson/common r35.5 main" > /etc/apt/sources.list.d/nvidia-l4t-apt-source.list \
+    && echo "deb https://repo.download.nvidia.com/jetson/t194 r35.5 main" >> /etc/apt/sources.list.d/nvidia-l4t-apt-source.list \
+    && mkdir -p /opt/nvidia/l4t-packages/ \
+    && touch /opt/nvidia/l4t-packages/.nv-l4t-disable-boot-fw-update-in-preinstall \
+    && apt-get update \
+    && apt install -y nvidia-l4t-cuda cuda-nvcc-11-4 \
     && rm -rf /var/lib/apt/lists/*
+    
 
-RUN pip3 install --break-system-packages cython nvidia-ml-py3
+RUN pip3 install cython nvidia-ml-py3
 
 # Install range_libc
 RUN git clone https://github.com/f1tenth/range_libc.git /range_libc \
     && cd /range_libc/pywrapper \
     && WITH_CUDA=ON TRACE=ON python3 setup.py install
+    
+
+# Install pip dependencies from
+RUN pip3 install setuptools==65.5.0 pip==21
+
+
+COPY simulator/requirements.txt /tmp/requirements.txt
+RUN pip3 install --no-cache-dir -r /tmp/requirements.txt
+
+COPY simulator/f1tenth_gym /tmp/f1tenth_gym
+RUN pip3 install /tmp/f1tenth_gym --no-cache-dir \
+    && rm -rf /tmp/f1tenth_gym
 
 # Install ros dependencies
 RUN apt-get update && apt-get install --no-install-recommends -y \
-    ros-${ROS_DISTRO}-ackermann-msgs \
-    ros-${ROS_DISTRO}-ackermann-steering-controller \
-    ros-${ROS_DISTRO}-robot-localization \
-    ros-${ROS_DISTRO}-joy-linux \
-    ros-${ROS_DISTRO}-teleop-twist-joy \
-    ros-${ROS_DISTRO}-interactive-marker-twist-server \
-    ros-${ROS_DISTRO}-twist-mux \
-    ros-${ROS_DISTRO}-tf-transformations \
-    ros-${ROS_DISTRO}-realtime-tools \
-    ros-${ROS_DISTRO}-nav2-map-server \
-    ros-${ROS_DISTRO}-nav2-lifecycle-manager \
-    ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
+    ros-humble-xacro \
+    ros-humble-rviz2 \
+    ros-humble-tf-transformations \
+    ros-humble-realtime-tools \
+    ros-humble-ackermann-msgs \
+    ros-humble-diagnostic-updater \
+    ros-humble-joint-state-publisher \
+    ros-humble-robot-localization \
+    ros-humble-rmw-cyclonedds-cpp \
+    ros-humble-nav2-lifecycle-manager \
+    ros-humble-nav2-map-server \
+    ros-humble-joy-linux \
     && rm -rf /var/lib/apt/lists/*
-
-COPY simulator/requirements.txt /tmp/requirements.txt
-
-# Install pip dependencies from
-RUN pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements.txt
 
 WORKDIR /ros2_ws
 
@@ -57,11 +74,11 @@ COPY src/common src/common
 COPY src/common_gpu src/common_gpu
 COPY src/simulator src/simulator
 
-ENV GZ_VERSION=harmonic
-
 RUN . /opt/ros/${ROS_DISTRO}/setup.sh \
     && colcon build --symlink-install \
     && echo "source /ros2_ws/install/setup.bash" >> /root/.bashrc
+
+COPY simulator/cyclonedds.xml /cyclonedds.xml
 
 COPY simulator/entrypoint.sh /
 ENTRYPOINT ["/entrypoint.sh"]

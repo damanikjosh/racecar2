@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CycloneDDS>
+  <Domain>
+    <General>
+      <!-- Specify the network interface or IP address -->
+      <NetworkInterfaceAddress>wlan0</NetworkInterfaceAddress>
+    </General>
+  </Domain>
+</CycloneDDS>

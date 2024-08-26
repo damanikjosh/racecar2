@@ -5,10 +5,10 @@ ackermann_mux:
         topic   : bluetooth_teleop/ackermann_cmd
         timeout : 0.5
         priority: 9
-      interactive_marker:
-        topic   : ackermann_marker_server/ackermann_cmd
-        timeout : 0.5
-        priority: 8
+      # interactive_marker:
+      #   topic   : ackermann_marker_server/ackermann_cmd
+      #   timeout : 0.5
+      #   priority: 8
       external:
         topic   : ackermann_cmd
         timeout : 0.5

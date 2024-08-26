@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="joy_dev" default="$(env JOY_DEVICE /dev/input/js0)" />
+  <arg name="joy_dev_ff" default="$(env JOY_DEVICE /dev/input/event2)" />
   <arg name="joystick" default="true" />
 
   <group if="$(var joystick)">
@@ -9,16 +10,17 @@
     <node pkg="joy_linux" exec="joy_linux_node" name="joy_node" output="screen">
       <param from="$(find-pkg-share racecar_control)/config/teleop_ps4.yaml" />
       <param name="dev" value="$(var joy_dev)" />
+      <param name="dev_ff" value="$(var joy_dev_ff)" />
     </node>
 
     <node pkg="teleop_ackermann_joy" exec="teleop_node" name="teleop_ackermann_joy" output="screen">
       <param from="$(find-pkg-share racecar_control)/config/teleop_ps4.yaml" />
     </node>
   </group>
-  <group>
+  <!-- <group>
     <push-ros-namespace namespace="ackermann_marker_server" />
     <node pkg="interactive_marker_ackermann_server" exec="marker_server" name="ackermann_marker_server">
         <param name="link_name" value="base_link" />
     </node>
-  </group>
+  </group> -->
 </launch>
