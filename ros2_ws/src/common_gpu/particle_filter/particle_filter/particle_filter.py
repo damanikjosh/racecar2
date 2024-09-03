@@ -160,7 +160,7 @@ class ParticleFiler(Node):
         self.initialize_global()
 
         # keep track of speed from input odom
-        self.current_speed = 0.0
+        self.current_speed = [0.0, 0.0]
 
         # Define a QoS profile with best effort reliability and a queue size of 1
         qos_profile = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT)
@@ -355,7 +355,10 @@ class ParticleFiler(Node):
             odom.pose.pose.orientation = Utils.angle_to_quaternion(pose[2])
             cov_mat = np.cov(self.particles, rowvar=False, ddof=0, aweights=self.weights).flatten()
             odom.pose.covariance[:cov_mat.shape[0]] = cov_mat
-            odom.twist.twist.linear.x = self.current_speed
+            odom.twist.twist.linear.x = self.current_speed[0]
+            odom.twist.twist.linear.y = 0.0
+            odom.twist.twist.linear.z = 0.0
+            odom.twist.twist.angular.z = self.current_speed[1]
             self.odom_pub.publish(odom)
         
         return
@@ -447,7 +450,7 @@ class ParticleFiler(Node):
 
         orientation = Utils.quaternion_to_angle(msg.pose.pose.orientation)
         self.pose = np.array([position[0], position[1], orientation])
-        self.current_speed = msg.twist.twist.linear.x
+        self.current_speed = [msg.twist.twist.linear.x, msg.twist.twist.angular.z]
 
         if isinstance(self.last_pose, np.ndarray):
             # changes in x,y,theta in local coordinate system of the car

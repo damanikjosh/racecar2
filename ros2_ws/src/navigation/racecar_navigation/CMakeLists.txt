@@ -23,7 +23,7 @@ install(DIRECTORY launch
 
 # Install Python executables
 install(PROGRAMS
-  scripts/debug_node.py
+  scripts/NMPC_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

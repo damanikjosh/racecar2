@@ -40,6 +40,10 @@ RUN git clone https://github.com/damanikjosh/range_libc.git /range_libc \
     && cd /range_libc/pywrapper \
     && WITH_CUDA=ON TRACE=ON python3 setup.py install
 
+RUN git clone --recurse-submodules https://github.com/osqp/cuosqp.git /cuosqp \
+    && cd /cuosqp \
+    && CUDA_PATH=/usr/local/cuda-10.2 python3 setup.py install
+
 # # Install FSMT
 
 # COPY free_space_motion_tube /tmp/free_space_motion_tube

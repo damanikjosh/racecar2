@@ -27,6 +27,7 @@ RUN echo "deb http://ports.ubuntu.com/ubuntu-ports focal main universe" > /etc/a
 RUN apt-get update && apt-get install --no-install-recommends -y \
     cuda-nvcc-10-2 \
     cuda-cudart-dev-10-2 \
+    cuda-samples-10-2 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100 \
@@ -39,12 +40,16 @@ RUN git clone https://github.com/f1tenth/range_libc.git /range_libc \
     && cd /range_libc/pywrapper \
     && WITH_CUDA=ON TRACE=ON python3 setup.py install
 
+
+RUN pip3 install scipy==1.11.0
+
+RUN git clone --recurse-submodules https://github.com/osqp/cuosqp.git /cuosqp \
+    && cd /cuosqp \
+    && CUDA_PATH=/usr/local/cuda-10.2 python3 setup.py install
+
 # Install pip dependencies from
 RUN pip3 install setuptools==65.5.0 pip==21
 
-
-COPY simulator/requirements.txt /tmp/requirements.txt
-RUN pip3 install --no-cache-dir -r /tmp/requirements.txt
 
 COPY simulator/f1tenth_gym /tmp/f1tenth_gym
 RUN pip3 install /tmp/f1tenth_gym --no-cache-dir \
@@ -68,7 +73,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     ros-humble-nav2-bringup \
     && rm -rf /var/lib/apt/lists/*
 
-
+COPY simulator/requirements.txt /tmp/requirements.txt
+RUN pip3 install --no-cache-dir -r /tmp/requirements.txt
 # Install FSMT
 
 # COPY free_space_motion_tube /free_space_motion_tube
