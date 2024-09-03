@@ -42,7 +42,7 @@ bridge:
     scan_beams: 1080
 
     # map parameters
-    map_path: '/ros2_ws/src/simulator/f1tenth_gym_ros/maps/ki_3f2'
+    map_path: '/ros2_ws/maps/track'
     map_img_ext: '.pgm'
 
     # opponent parameters

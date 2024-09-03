@@ -6,16 +6,11 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /Map1
-        - /Map1/Status1
-        - /Map1/Topic1
-        - /Map1/Update Topic1
         - /LaserScan1
         - /LaserScan1/Status1
         - /LaserScan1/Topic1
-        - /TF1
-        - /TF1/Frames1
-        - /TF1/Tree1
+        - /Map2
+        - /Path1
       Splitter Ratio: 0.5
     Tree Height: 712
   - Class: rviz_common/Selection
@@ -78,14 +73,14 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: -12.533915519714355
-        Min Value: -14.665323257446289
+        Max Value: 4.991787433624268
+        Min Value: 1.6238638162612915
         Value: true
       Axis: X
       Channel Name: intensity
       Class: rviz_default_plugins/LaserScan
-      Color: 255; 255; 255
-      Color Transformer: AxisColor
+      Color: 255; 0; 0
+      Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
@@ -97,7 +92,7 @@ Visualization Manager:
       Position Transformer: XYZ
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.10000000149011612
+      Size (m): 0.019999999552965164
       Style: Flat Squares
       Topic:
         Depth: 1
@@ -130,10 +125,6 @@ Visualization Manager:
           Value: true
         left_battery_offset:
           Value: true
-        left_front_axle_carrier:
-          Value: true
-        left_steering_link:
-          Value: true
         map:
           Value: true
         odom:
@@ -142,10 +133,6 @@ Visualization Manager:
           Value: true
         right_battery_offset:
           Value: true
-        right_front_axle_carrier:
-          Value: true
-        right_steering_link:
-          Value: true
       Marker Scale: 1
       Name: TF
       Show Arrows: true
@@ -153,22 +140,72 @@ Visualization Manager:
       Show Names: false
       Tree:
         map:
-          front_laser:
-            {}
-        odom:
-          base_link:
-            chassis:
-              front_laser_mount:
-                {}
-              imu_link:
-                {}
-              left_battery_offset:
-                left_battery:
+          odom:
+            base_link:
+              chassis:
+                front_laser_mount:
+                  front_laser:
+                    {}
+                imu_link:
                   {}
-              right_battery_offset:
-                right_battery:
-                  {}
+                left_battery_offset:
+                  left_battery:
+                    {}
+                right_battery_offset:
+                  right_battery:
+                    {}
       Update Interval: 0
+      Value: true
+    - Alpha: 0.699999988079071
+      Binary representation: false
+      Binary threshold: 100
+      Class: rviz_default_plugins/Map
+      Color Scheme: costmap
+      Draw Behind: false
+      Enabled: true
+      Name: Map
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /global_costmap/costmap
+      Update Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /global_costmap/costmap_updates
+      Use Timestamp: false
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz_default_plugins/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /plan
       Value: true
   Enabled: true
   Global Options:
@@ -216,16 +253,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 127.47361755371094
+      Distance: 13.027276039123535
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -5.308909893035889
-        Y: -8.679397583007812
-        Z: 5.408724308013916
+        X: 0.6396944522857666
+        Y: -2.906792640686035
+        Z: 1.598889708518982
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -234,7 +271,7 @@ Visualization Manager:
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.7004003524780273
+      Yaw: 3.935399293899536
     Saved: ~
 Window Geometry:
   Displays:

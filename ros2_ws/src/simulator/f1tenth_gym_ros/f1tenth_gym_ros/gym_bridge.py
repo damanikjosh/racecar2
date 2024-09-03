@@ -134,6 +134,7 @@ class GymBridge(Node):
             self.has_opp = False
             self.obs, _ , self.done, _ = self.env.reset(np.array([[sx, sy, stheta]]))
             self.ego_scan = list(self.obs['scans'][0])
+        # self.env.render()
 
         # sim physical step timer
         self.drive_timer = self.create_timer(0.01, self.drive_timer_callback)
@@ -208,7 +209,7 @@ class GymBridge(Node):
 
     def get_params(self):
         # Set default values
-        params_dict = {'mu': 1.0489,
+        params_dict = {'mu': 0.5,
                'C_Sf': 4.718,
                'C_Sr': 5.4562,
                'lf': 0.15875,
@@ -310,6 +311,7 @@ class GymBridge(Node):
         elif self.ego_drive_published and self.has_opp and self.opp_drive_published:
             self.obs, _, self.done, _ = self.env.step(np.array([[self.ego_steer, self.ego_requested_speed], [self.opp_steer, self.opp_requested_speed]]))
         self._update_sim_state()
+        # self.env.render()
 
     def timer_callback(self):
         ts = self.get_clock().now().to_msg()

@@ -1,6 +1,4 @@
-ARG ROS_DISTRO=jazzy
-
-FROM ros:jazzy-ros-base AS ros-base
+FROM l4t-ros:humble-ros-base-r32.7
 LABEL authors="Joshua J. Damanik <joshuajdmk@gmail.com>"
 LABEL version="0.0.1"
 
@@ -17,78 +15,89 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install --no-install-recommends -y \
     git \
     curl \
+    tmux \
     python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
+RUN echo "deb http://ports.ubuntu.com/ubuntu-ports focal main universe" > /etc/apt/sources.list.d/ubuntu-20.04.list \
+    && apt-get update && apt-get install --no-install-recommends -y gcc-8 g++-8 \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm /etc/apt/sources.list.d/ubuntu-20.04.list
 
-# FROM ros-base AS cuda-builder
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    cuda-nvcc-10-2 \
+    cuda-cudart-dev-10-2 \
+    && rm -rf /var/lib/apt/lists/*
 
-# # Install CUDA
-# RUN curl -O https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/arm64/cuda-keyring_1.1-1_all.deb \
-#     && dpkg -i cuda-keyring_1.1-1_all.deb \
-#     && rm cuda-keyring_1.1-1_all.deb
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100 \
+    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 100
 
-# RUN apt-get update && apt-get install -y \
-#     cuda-cudart-dev-12-6 \
-#     cuda-nvcc-12-6 \
-#     && rm -rf /var/lib/apt/lists/*
+RUN pip3 install cython nvidia-ml-py3
 
-# RUN pip3 install cython nvidia-ml-py3
+# Install range_libc
 
-# # Install range_libc
-# RUN git clone https://github.com/f1tenth/range_libc.git /range_libc \
-#     && cd /range_libc/pywrapper \
-#     && WITH_CUDA=ON TRACE=ON python3 setup.py build_ext
+RUN git clone https://github.com/damanikjosh/range_libc.git /range_libc \
+    && cd /range_libc/pywrapper \
+    && WITH_CUDA=ON TRACE=ON python3 setup.py install
 
-# WORKDIR /ros2_ws/src
+# # Install FSMT
 
-# COPY src/common_gpu src/common_gpu
-
-# RUN . /opt/ros/jazzy/setup.sh \
-#     && colcon build --symlink-install \
-#     && echo "source /ros2_ws/install/setup.bash" >> /root/.bashrc
-
-
-FROM ros-base AS robot
-
-# COPY --from=cuda-builder /ros2_ws /ros2_ws
-# COPY --from=cuda-builder /range_libc/pywrapper/build/lib.linux-aarch64-3.12 /usr/local/lib/python3.12/dist-packages
+# COPY free_space_motion_tube /tmp/free_space_motion_tube
+# RUN cd /tmp/free_space_motion_tube \
+#     && mkdir build \
+#     && cd build \
+#     && cmake .. \
+#     && make install
 
 WORKDIR /ros2_ws/src
 
-# Clone micro ROS
-# RUN git clone -b jazzy https://github.com/micro-ROS/micro_ros_msgs
-# RUN git clone -b jazzy https://github.com/micro-ROS/micro-ROS-Agent
 RUN git clone --recursive https://github.com/Hokuyo-aut/urg_node2.git
 
 # Install ros dependencies
 RUN apt-get update && apt-get install --no-install-recommends -y \
-    ros-jazzy-xacro \
-    ros-jazzy-ackermann-msgs \
-    ros-jazzy-robot-localization \
-    ros-jazzy-joy-linux \
-    ros-jazzy-teleop-twist-joy \
-    ros-jazzy-interactive-marker-twist-server \
-    ros-jazzy-twist-mux \
-    ros-jazzy-realtime-tools \
-    ros-jazzy-laser-proc \
-    ros-jazzy-nav2-lifecycle-manager \
-    ros-jazzy-nav2-bringup \
-    ros-jazzy-serial-driver \
-    ros-jazzy-asio-cmake-module \
-    ros-jazzy-rmw-cyclonedds-cpp \
+    ros-humble-xacro \
+    ros-humble-ackermann-msgs \
+    ros-humble-robot-localization \
+    ros-humble-joy-linux \
+    ros-humble-teleop-twist-joy \
+    ros-humble-interactive-marker-twist-server \
+    ros-humble-twist-mux \
+    ros-humble-realtime-tools \
+    ros-humble-laser-proc \
+    ros-humble-nav2-lifecycle-manager \
+    ros-humble-nav2-map-server \
+    ros-humble-serial-driver \
+    ros-humble-asio-cmake-module \
+    ros-humble-tf-transformations \
+    ros-humble-navigation2 \
+    ros-humble-nav2-bringup \
+    ros-humble-slam-toolbox \
+    ros-humble-rmw-cyclonedds-cpp \
     && rm -rf /var/lib/apt/lists/*
+    
+COPY robot/requirements.txt /tmp/requirements.txt
+RUN pip3 install --no-cache-dir -r /tmp/requirements.txt
     
 WORKDIR /ros2_ws
 
 COPY src/common src/common
+COPY src/common_gpu src/common_gpu
 COPY src/robot src/robot
 
-RUN . /opt/ros/jazzy/setup.sh \
-    && colcon build --symlink-install \
-    && echo "source /ros2_ws/install/setup.bash" >> /root/.bashrc
+RUN . /opt/ros/humble/setup.sh \
+    && colcon build --symlink-install
+
+COPY src/navigation src/navigation
+
+RUN . /opt/ros/humble/setup.sh \
+    && colcon build --symlink-install
 
 COPY robot/cyclonedds.xml /cyclonedds.xml
 
+RUN echo "source /ros2_ws/install/setup.bash" >> /root/.bashrc \
+    && echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> /root/.bashrc \
+    && echo "export CYCLONEDDS_URI=file:///cyclonedds.xml" >> /root/.bashrc
+
 COPY robot/entrypoint.sh /
 ENTRYPOINT ["/entrypoint.sh"]
+CMD ["bash"]

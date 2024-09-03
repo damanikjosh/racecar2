@@ -1,18 +1,24 @@
 services:
   ros:
     image: racecar_robot:latest
+    container_name: ros
+    runtime: nvidia
+    privileged: true
     environment:
       - PYTHONUNBUFFERED=1
       - ROS_DOMAIN_ID=16
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
-    runtime: nvidia
+      - LC_NUMERIC=en_US.UTF-8
     network_mode: host
     devices:
       - /dev/ttyACM0:/dev/ttyACM0
-      - /dev/input:/dev/input
+      - /dev/input/js0:/dev/input/js0
     volumes:
-      - /dev/shm:/dev/shm
+      - ../maps:/ros2_ws/maps
       - ../src/common:/ros2_ws/src/common
+      - ../src/common_gpu:/ros2_ws/src/common_gpu
       - ../src/robot:/ros2_ws/src/robot
-    command: ros2 launch racecar_base slam.launch
+      - ../src/navigation:/ros2_ws/src/navigation
+    command: ros2 launch racecar_base bringup.launch
+    # command: ros2 launch racecar_base navigation.launch map:=/ros2_ws/maps/ki_3f2.yaml

@@ -35,7 +35,7 @@ from particle_filter import utils as Utils
 # TF
 # import tf.transformations
 # import tf
-from tf2_ros import TransformBroadcaster
+import tf2_ros
 import tf_transformations
 
 # messages
@@ -124,6 +124,8 @@ class ParticleFiler(Node):
         self.map_initialized = False
         self.lidar_initialized = False
         self.odom_initialized = False
+        self.odom = None
+        self.pose = None
         self.last_pose = None
         self.laser_angles = None
         self.downsampled_angles = None
@@ -174,7 +176,10 @@ class ParticleFiler(Node):
             self.odom_pub = self.create_publisher(Odometry, 'pf/pose/odom', qos_profile)
 
         # these topics are for coordinate space things
-        self.pub_tf = TransformBroadcaster(self)
+        self.pub_tf = tf2_ros.TransformBroadcaster(self)
+        
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
 
         # These topics are to receive data from the racecar
@@ -256,7 +261,7 @@ class ParticleFiler(Node):
         # header
         t.header.stamp = stamp
         t.header.frame_id = 'map'
-        t.child_frame_id = 'base_link'
+        t.child_frame_id = 'front_laser'
         # translation
         t.transform.translation.x = pose[0]
         t.transform.translation.y = pose[1]
@@ -268,7 +273,77 @@ class ParticleFiler(Node):
         t.transform.rotation.y = q[1]
         t.transform.rotation.z = q[2]
         t.transform.rotation.w = q[3]
-        self.pub_tf.sendTransform(t)
+
+        # Get the t_odom_base_link transform from self.odom
+        t_odom_base_link = TransformStamped()
+        t_odom_base_link.header.stamp = stamp
+        t_odom_base_link.header.frame_id = 'odom'
+        t_odom_base_link.child_frame_id = 'base_link'
+        t_odom_base_link.transform.translation.x = self.odom.pose.pose.position.x
+        t_odom_base_link.transform.translation.y = self.odom.pose.pose.position.y
+        t_odom_base_link.transform.translation.z = self.odom.pose.pose.position.z
+        t_odom_base_link.transform.rotation.x = self.odom.pose.pose.orientation.x
+        t_odom_base_link.transform.rotation.y = self.odom.pose.pose.orientation.y
+        t_odom_base_link.transform.rotation.z = self.odom.pose.pose.orientation.z
+        t_odom_base_link.transform.rotation.w = self.odom.pose.pose.orientation.w
+
+        t_base_link_odom = tf_transformations.inverse_matrix(tf_transformations.concatenate_matrices(
+            tf_transformations.translation_matrix((
+                self.odom.pose.pose.position.x,
+                self.odom.pose.pose.position.y,
+                self.odom.pose.pose.position.z)),
+            tf_transformations.quaternion_matrix((
+                self.odom.pose.pose.orientation.x,
+                self.odom.pose.pose.orientation.y,
+                self.odom.pose.pose.orientation.z,
+                self.odom.pose.pose.orientation.w))
+        ))
+
+        # Create the transform from front_laser to base_link (0.15 meters along the x-axis)
+        t_front_laser_base_link = tf_transformations.translation_matrix((0.15, 0.0, 0.0))
+
+        # Inverse the front_laser->base_link transform to get base_link->front_laser
+        t_base_link_front_laser = tf_transformations.inverse_matrix(t_front_laser_base_link)
+
+        # Combine the transforms to get map->base_link
+        t_map_base_link_matrix = tf_transformations.concatenate_matrices(
+            tf_transformations.translation_matrix((
+                t.transform.translation.x,
+                t.transform.translation.y,
+                t.transform.translation.z)),
+            tf_transformations.quaternion_matrix((
+                t.transform.rotation.x,
+                t.transform.rotation.y,
+                t.transform.rotation.z,
+                t.transform.rotation.w)),
+            t_base_link_front_laser
+        )
+
+        t_map_odom_matrix = tf_transformations.concatenate_matrices(
+                t_map_base_link_matrix, t_base_link_odom)
+
+        # Convert the resulting matrix back to a TransformStamped message
+        t_map_odom = TransformStamped()
+
+        t_map_odom.header.stamp = stamp
+        t_map_odom.header.frame_id = 'map'
+        t_map_odom.child_frame_id = 'odom'
+
+        # Extract translation and rotation from the matrix
+        translation = tf_transformations.translation_from_matrix(t_map_odom_matrix)
+        rotation = tf_transformations.quaternion_from_matrix(t_map_odom_matrix)
+
+        t_map_odom.transform.translation.x = translation[0]
+        t_map_odom.transform.translation.y = translation[1]
+        t_map_odom.transform.translation.z = translation[2]
+        t_map_odom.transform.rotation.x = rotation[0]
+        t_map_odom.transform.rotation.y = rotation[1]
+        t_map_odom.transform.rotation.z = rotation[2]
+        t_map_odom.transform.rotation.w = rotation[3]
+
+
+        self.pub_tf.sendTransform(t_map_odom)
+        
         # also publish odometry to facilitate getting the localization pose
         if self.PUBLISH_ODOM:
             odom = Odometry()
@@ -367,9 +442,11 @@ class ParticleFiler(Node):
         position = np.array([
             msg.pose.pose.position.x,
             msg.pose.pose.position.y])
+        
+        self.odom = msg
 
         orientation = Utils.quaternion_to_angle(msg.pose.pose.orientation)
-        pose = np.array([position[0], position[1], orientation])
+        self.pose = np.array([position[0], position[1], orientation])
         self.current_speed = msg.twist.twist.linear.x
 
         if isinstance(self.last_pose, np.ndarray):
@@ -379,12 +456,12 @@ class ParticleFiler(Node):
             local_delta = (rot*delta).transpose()
             
             self.odometry_data = np.array([local_delta[0,0], local_delta[0,1], orientation - self.last_pose[2]])
-            self.last_pose = pose
+            self.last_pose = self.pose
             self.last_stamp = msg.header.stamp
             self.odom_initialized = True
         else:
             self.get_logger().info('...Received first Odometry message')
-            self.last_pose = pose
+            self.last_pose = self.pose
 
         # this topic is slower than lidar, so update every time we receive a message
         self.update()

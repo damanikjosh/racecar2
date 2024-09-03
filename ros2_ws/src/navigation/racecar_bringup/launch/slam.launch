@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- <include file="$(find-pkg-share racecar_viz)/launch/rviz.launch"/> -->
+  <include file="$(find-pkg-share slam_toolbox)/launch/online_async_launch.py">
+    <arg name="slam_params_file" value="$(find-pkg-share racecar_bringup)/params/mapper_params_online_async.yaml"/>
+  </include>
+</launch>

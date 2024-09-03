@@ -1,37 +1,32 @@
-networks:
-  ros:
 services:
   ros:
     image: racecar_simulator:latest
+    container_name: ros
     runtime: nvidia
     environment:
       - ROS_DOMAIN_ID=16
       - LC_NUMERIC=en_US.UTF-8
-      # - DISPLAY=novnc:0
-      - DISPLAY=:1
+      # - DISPLAY=:0
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
       - PYTHONUNBUFFERED=1
     network_mode: host
-    # networks:
-    #   - ros
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
+      - ../maps:/ros2_ws/maps
       - ../src/common:/ros2_ws/src/common
       - ../src/common_gpu:/ros2_ws/src/common_gpu
       - ../src/simulator:/ros2_ws/src/simulator
+      - ../src/navigation:/ros2_ws/src/navigation
     devices:
       - /dev/input:/dev/input
     command: ros2 launch f1tenth_gym_ros simulator.launch
   # novnc:
-  #   build:
-  #     context: ./docker-novnc
-  #     dockerfile: Dockerfile
+  #   build: ./docker-novnc
   #   environment:
   #     - DISPLAY_WIDTH=1920
   #     - DISPLAY_HEIGHT=1080
   #     - RUN_XTERM=no
-  #   ports:
-  #     - "8080:8080"
-  #   networks:
-  #     - ros
+  #   volumes:
+  #     - /tmp/.X11-unix:/tmp/.X11-unix
+  #   network_mode: host

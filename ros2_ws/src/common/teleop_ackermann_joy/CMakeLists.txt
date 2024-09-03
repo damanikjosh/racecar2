@@ -18,12 +18,14 @@ find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED src/teleop_ackermann_joy.cpp)
-target_link_libraries(${PROJECT_NAME}
-  ${ackermann_msgs_TARGETS}
-  rclcpp::rclcpp
-  rclcpp_components::component
-  ${sensor_msgs_TARGETS}
-)
+# target_link_libraries(${PROJECT_NAME}
+#   ${ackermann_msgs_TARGETS}
+#   rclcpp::rclcpp
+#   rclcpp_components::component
+#   ${sensor_msgs_TARGETS}
+# )
+
+ament_target_dependencies(${PROJECT_NAME} rclcpp ackermann_msgs rclcpp_components sensor_msgs)
 
 include(GenerateExportHeader)
 generate_export_header(${PROJECT_NAME} EXPORT_FILE_NAME ${PROJECT_NAME}/${PROJECT_NAME}_export.h)
@@ -40,6 +42,7 @@ add_executable(${PROJECT_NAME}_node src/teleop_node.cpp)
 target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
 set_target_properties(${PROJECT_NAME}_node
   PROPERTIES OUTPUT_NAME teleop_node PREFIX "")
+
 
 install(TARGETS ${PROJECT_NAME}
   EXPORT export_${PROJECT_NAME}

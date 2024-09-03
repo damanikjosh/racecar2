@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="racecar_navigation" exec="debug_node.py" name="debug_node" />
+</launch>

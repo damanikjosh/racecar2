@@ -5,7 +5,7 @@ particle_filter:
     odometry_topic: '/odom'
     # range data downsampling
     angle_step: 18
-    max_particles: 3000
+    max_particles: 600
     squash_factor: 2.2
     # visualization
     viz: 0

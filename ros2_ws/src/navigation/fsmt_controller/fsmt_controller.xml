@@ -1,0 +1,10 @@
+<class_libraries>
+    <library path="fsmt_controller">
+        <class type="fsmt_controller::FSMTController" base_class_type="nav2_core::Controller">
+            <description>
+                fsmt_controller
+            </description>
+        </class>
+    </library>
+</class_libraries>
+

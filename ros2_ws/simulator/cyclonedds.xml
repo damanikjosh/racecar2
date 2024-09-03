@@ -3,7 +3,10 @@
   <Domain>
     <General>
       <!-- Specify the network interface or IP address -->
-      <NetworkInterfaceAddress>wlan0</NetworkInterfaceAddress>
+      <Interfaces>
+        <NetworkInterface name="wlan0" />
+      </Interfaces>
+      <!-- <NetworkInterfaceAddress>wlan0</NetworkInterfaceAddress> -->
     </General>
   </Domain>
 </CycloneDDS>

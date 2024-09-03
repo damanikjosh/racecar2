@@ -6,7 +6,7 @@
   <node pkg="racecar_control" exec="racecar_controller" name="racecar_controller" output="screen">
     <param name="use_sim_time" value="$(var use_sim_time)" />
     <param from="$(find-pkg-share racecar_control)/config/controller.yaml" />
-    <remap from="ackermann_cmd" to="racecar_controller/ackermann_cmd" />
+    <remap from="ackermann_cmd" to="vesc/ackermann_cmd" />
   </node>
 
   <group if="$(var enable_ekf)">
@@ -17,7 +17,7 @@
   </group>
   <node pkg="ackermann_mux" exec="ackermann_mux" name="ackermann_mux" output="screen">
     <param from="$(find-pkg-share racecar_control)/config/ackermann_mux.yaml" />
-    <remap from="ackermann_cmd_out" to="racecar_controller/ackermann_cmd" />
+    <remap from="ackermann_cmd_out" to="vesc/ackermann_cmd" />
   </node>
   
 </launch>

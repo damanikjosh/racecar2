@@ -3,6 +3,10 @@
   <arg name="joy_dev" default="$(env JOY_DEVICE /dev/input/js0)" />
   <arg name="joy_dev_ff" default="$(env JOY_DEVICE /dev/input/event2)" />
   <arg name="joystick" default="true" />
+  <arg name="usb" default="false" />
+
+  <let name="teleop_params" value="$(find-pkg-share racecar_control)/config/teleop_ps4.yaml" unless="$(var usb)"/>
+  <let name="teleop_params" value="$(find-pkg-share racecar_control)/config/teleop_ps4_usb.yaml" if="$(var usb)"/>
 
   <group if="$(var joystick)">
     <push-ros-namespace namespace="bluetooth_teleop" />
@@ -14,7 +18,8 @@
     </node>
 
     <node pkg="teleop_ackermann_joy" exec="teleop_node" name="teleop_ackermann_joy" output="screen">
-      <param from="$(find-pkg-share racecar_control)/config/teleop_ps4.yaml" />
+      <!-- If USB teleop_ps4_usb.yaml, else teleop_ps4.yaml -->
+      <param from="$(var teleop_params)" />
     </node>
   </group>
   <!-- <group>

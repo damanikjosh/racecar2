@@ -4,4 +4,10 @@
   <node pkg="robot_state_publisher" exec="robot_state_publisher" name="robot_state_publisher">
     <param name="robot_description" value="$(command 'xacro $(find-pkg-share racecar_description)/urdf/racecar.urdf.xacro robot_prefix:=$(var prefix)')"/>
   </node>
+
+  <!-- Static transform from base_link to front_laser with translation [0.15,0.00,0.1174] -->
+  <!-- <node pkg="tf2_ros" exec="static_transform_publisher" name="base_link_to_front_laser" args="0.15 0.00 0.1174 0 0 0 base_link front_laser 1.0" /> -->
+
+  <!-- Inverse: Static transform from front_laser to base_link with translation [-0.15,0.00,-0.1174] -->
+  <!-- <node pkg="tf2_ros" exec="static_transform_publisher" name="front_laser_to_base_link" args="-0.15 0.00 -0.1174 0 0 0 front_laser base_link" /> -->
 </launch>

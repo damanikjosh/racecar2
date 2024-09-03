@@ -2,5 +2,6 @@
 set -e
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 export CYCLONEDDS_URI=file:///cyclonedds.xml
+export UDEV=1
 source /ros2_ws/install/setup.bash
 exec "$@"

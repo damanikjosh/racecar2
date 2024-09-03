@@ -1,0 +1,8 @@
+<library path="racecar_planner_plugin">
+	<class name="racecar_planner/StraightLine" type="racecar_planner::StraightLine" base_class_type="nav2_core::GlobalPlanner">
+	  <description>This is an example plugin which produces path for racecar.</description>
+	</class>
+	<class name="racecar_planner/TrackPlanner" type="racecar_planner::TrackPlanner" base_class_type="nav2_core::GlobalPlanner">
+	  <description>This is an example plugin which produces path for racecar.</description>
+	</class>
+</library>

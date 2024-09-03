@@ -1,4 +1,4 @@
-FROM ros:humble-ros-base
+FROM l4t-ros:humble-ros-base-r32.7
 LABEL authors="Joshua J. Damanik <joshuajdmk@gmail.com>"
 LABEL version="0.0.1"
 
@@ -15,23 +15,22 @@ RUN if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then \
 RUN apt-get update && apt-get install --no-install-recommends -y \
     git \
     curl \
+    tmux \
     python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-# nvidia-l4t-core is a dependency for the rest
-# of the packages, and is designed to be installed directly
-# on the target device. This because it parses /proc/device-tree
-# in the deb's .preinst script. Looks like we can bypass it though:
+RUN echo "deb http://ports.ubuntu.com/ubuntu-ports focal main universe" > /etc/apt/sources.list.d/ubuntu-20.04.list \
+    && apt-get update && apt-get install --no-install-recommends -y gcc-8 g++-8 \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm /etc/apt/sources.list.d/ubuntu-20.04.list
 
-RUN apt-key adv --fetch-key http://repo.download.nvidia.com/jetson/jetson-ota-public.asc \
-    && echo "deb https://repo.download.nvidia.com/jetson/common r35.5 main" > /etc/apt/sources.list.d/nvidia-l4t-apt-source.list \
-    && echo "deb https://repo.download.nvidia.com/jetson/t194 r35.5 main" >> /etc/apt/sources.list.d/nvidia-l4t-apt-source.list \
-    && mkdir -p /opt/nvidia/l4t-packages/ \
-    && touch /opt/nvidia/l4t-packages/.nv-l4t-disable-boot-fw-update-in-preinstall \
-    && apt-get update \
-    && apt install -y nvidia-l4t-cuda cuda-nvcc-11-4 \
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    cuda-nvcc-10-2 \
+    cuda-cudart-dev-10-2 \
     && rm -rf /var/lib/apt/lists/*
-    
+
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100 \
+    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 100    
 
 RUN pip3 install cython nvidia-ml-py3
 
@@ -39,7 +38,6 @@ RUN pip3 install cython nvidia-ml-py3
 RUN git clone https://github.com/f1tenth/range_libc.git /range_libc \
     && cd /range_libc/pywrapper \
     && WITH_CUDA=ON TRACE=ON python3 setup.py install
-    
 
 # Install pip dependencies from
 RUN pip3 install setuptools==65.5.0 pip==21
@@ -66,7 +64,20 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     ros-humble-nav2-lifecycle-manager \
     ros-humble-nav2-map-server \
     ros-humble-joy-linux \
+    ros-humble-navigation2 \
+    ros-humble-nav2-bringup \
     && rm -rf /var/lib/apt/lists/*
+
+
+# Install FSMT
+
+# COPY free_space_motion_tube /free_space_motion_tube
+# RUN cd /free_space_motion_tube \
+#     && mkdir build \
+#     && cd build \
+#     && cmake .. \
+#     && make install
+
 
 WORKDIR /ros2_ws
 
@@ -74,11 +85,20 @@ COPY src/common src/common
 COPY src/common_gpu src/common_gpu
 COPY src/simulator src/simulator
 
-RUN . /opt/ros/${ROS_DISTRO}/setup.sh \
-    && colcon build --symlink-install \
-    && echo "source /ros2_ws/install/setup.bash" >> /root/.bashrc
+RUN . /opt/ros/humble/setup.sh \
+    && colcon build --symlink-install 
 
+COPY src/navigation src/navigation
+
+RUN . /opt/ros/humble/setup.sh \
+    && colcon build --symlink-install
+    
 COPY simulator/cyclonedds.xml /cyclonedds.xml
+
+RUN echo "source /ros2_ws/install/setup.bash" >> /root/.bashrc \
+    && echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> /root/.bashrc \
+    && echo "export CYCLONEDDS_URI=file:///cyclonedds.xml" >> /root/.bashrc
+
 
 COPY simulator/entrypoint.sh /
 ENTRYPOINT ["/entrypoint.sh"]

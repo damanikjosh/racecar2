@@ -69,7 +69,7 @@ public:
 
     odom_frequency_ = odom_frequency;
 
-    rclcpp::QoS qos_profile = rclcpp::QoS(10).reliability(rclcpp::ReliabilityPolicy::BestEffort);
+    rclcpp::QoS qos_profile = rclcpp::QoS(10).best_effort();
 
     // Subscriber setup
     throttle_sub_ = this->create_subscription<std_msgs::msg::Float32>(
@@ -110,7 +110,8 @@ private:
     last_cmd_time_ = this->now();
 
     // Lock the mutex before updating the throttle velocity and steering angle
-    double throttle_cmd = msg->speed / wheel_radius_;
+    double speed = msg->speed;
+    double throttle_cmd = std::max(-1.0, speed) / wheel_radius_;
     double steering_cmd = msg->steering_angle;
 
     // Publish the throttle and steering angle
