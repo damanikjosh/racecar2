@@ -428,35 +428,34 @@ def calc_ref_trajectory(state, cx, cy, cyaw, ck, sp, dl, pind):
     xref[3, 0] = cyaw[i]
     dref[0, 0] = 0.0
 
-    if i + 1 < ncourse: 
-        dl = ((cx[i+1]- cx[i])**2 +(cy[i+1]- cy[i])**2 )**0.5
-    else:
-        dl = ((cx[i]- cx[i-1])**2 +(cy[i]- cy[i-1])**2 )**0.5
-    travel = state.v * DT
-    dind = int(round(travel/dl))
-    if dind>2: 
-        for k in range(T + 1):
-            travel += state.v * DT
-            dind = int(round(travel / dl))
-            n = (i+dind) % ncourse
-            # current_wpt = np.array([cx[n], cy[n]])
-            # dind_ = int(round((travel + state.v *DT )/ dl)) 
-            # n_ = (i+dind_) % ncourse
-            # next_wpt = np.array([cx[n_], cy[n_]])
-            # diff = next_wpt - current_wpt
-            # yaw = np.arctan2(diff[1], diff[0])
-            xref[0, k] = cx[n]
-            xref[1, k] = cy[n]
-            xref[2, k] = sp[n]
-            xref[3, k] = cyaw[n]
-            dref[0, k] = 0.0
-    else: 
-        for k in range(T+1):
+    # if i + 1 < ncourse: 
+    #     dl = ((cx[i+1]- cx[i])**2 +(cy[i+1]- cy[i])**2 )**0.5
+    # else:
+    #     dl = ((cx[i]- cx[i-1])**2 +(cy[i]- cy[i-1])**2 )**0.5
+    # travel = state.v * DT
+    # dind = int(round(travel/dl))
+    # if dind>2: 
+    #     for k in range(T + 1):
+    #         travel += state.v * DT
+    #         dind = int(round(travel / dl))
+    #         n = (i+dind) % ncourse
+    #         # current_wpt = np.array([cx[n], cy[n]])
+    #         # dind_ = int(round((travel + state.v *DT )/ dl)) 
+    #         # n_ = (i+dind_) % ncourse
+    #         # next_wpt = np.array([cx[n_], cy[n_]])
+    #         # diff = next_wpt - current_wpt
+    #         # yaw = np.arctan2(diff[1], diff[0])
+    #         xref[0, k] = cx[n]
+    #         xref[1, k] = cy[n]
+    #         xref[2, k] = sp[n]
+    #         xref[3, k] = cyaw[n]
+    #         dref[0, k] = 0.0
+    # else: 
+    for k in range(1, T+1):
             n= (i+k+1) % ncourse
             xref[0, k] = cx[n]
             xref[1, k] = cy[n]
             xref[2, k] = sp[n]
-
             xref[3, k] = cyaw[n]
             dref[0, k] = 0.0
 
