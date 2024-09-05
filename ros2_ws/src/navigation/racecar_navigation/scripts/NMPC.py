@@ -22,13 +22,14 @@ from numba import njit
 # working but suboptimal parameter set for the map addis 
 NX = 4 # x, y, v, yaw
 NU = 2 # acceleration, steering angle
-T = 15 # horizon length
-DT = 0.05 # time step
-Q = np.diag([1.0, 1.0, 1.0, 1.0]) # State cost matrix
+T = 10 #horizon length
+DT = 0.02 # time step
+Q = sparse.diags([1.0, 1.0, .5, 1.0]) # State cost matrix
 
-R = np.diag([1.0, 10.0]) # Control cost matrix
-Qf = Q # Final state cost matrix
+R = sparse.diags([0.1, 5.50]) # Control cost matrix
+Qf = sparse.diags([2., 2., 1., 2.]) # Final state cost matrix
 Rd = sparse.diags([1, 1]) # Control difference cost matrix
+
 ds = 0.5 # [m] distance of each interpolated points
 TARGET_SPEED = 8 # [m/s] target speed
 N_IND_SEARCH = 15  # Search index number
@@ -273,8 +274,9 @@ def Linear_MPC(xref , xbar, x0 , dref):
     # linear objective 
     # QQ = sparse.block_diag([Q,Qf]).toarray()
     # print(QQ.shape, Q.shape, xref.shape)
-    q_ = ( -Q@xref).flatten(order='F')
-    q = np.hstack([q_,np.zeros(T*NU)])
+    q_ = ( -Q@xref[:,:T]).flatten(order='F')
+    qq_ = ( -Qf@xref[:,T]).flatten(order='F')
+    q = np.hstack([q_,qq_,np.zeros(T*NU)])
     # Linear Dynamics
     # Get the first LTV ABCs 
     AA, B, C = get_linear_model_matrix(
@@ -437,6 +439,12 @@ def calc_ref_trajectory(state, cx, cy, cyaw, ck, sp, dl, pind):
             travel += state.v * DT
             dind = int(round(travel / dl))
             n = (i+dind) % ncourse
+            # current_wpt = np.array([cx[n], cy[n]])
+            # dind_ = int(round((travel + state.v *DT )/ dl)) 
+            # n_ = (i+dind_) % ncourse
+            # next_wpt = np.array([cx[n_], cy[n_]])
+            # diff = next_wpt - current_wpt
+            # yaw = np.arctan2(diff[1], diff[0])
             xref[0, k] = cx[n]
             xref[1, k] = cy[n]
             xref[2, k] = sp[n]
@@ -448,6 +456,7 @@ def calc_ref_trajectory(state, cx, cy, cyaw, ck, sp, dl, pind):
             xref[0, k] = cx[n]
             xref[1, k] = cy[n]
             xref[2, k] = sp[n]
+
             xref[3, k] = cyaw[n]
             dref[0, k] = 0.0
 
@@ -470,7 +479,7 @@ def calc_speed_profile(cx, cy, cyaw, target_speed):
                 direction = 1.0
 
         if direction != 1.0:
-            speed_profile[i] = -target_speed
+            speed_profile[i] = target_speed
         else:
             speed_profile[i] = target_speed
 

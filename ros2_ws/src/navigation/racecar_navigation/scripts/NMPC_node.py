@@ -9,8 +9,9 @@ from tf_transformations import euler_from_quaternion
 from nav_msgs.msg import Odometry
 import numpy as np
 from nav_msgs.msg import Path
+import cubic_spline_planner
 
-# import csv
+# import csvs
 import NMPC
 
 class NMPCNode(Node):
@@ -21,7 +22,8 @@ class NMPCNode(Node):
         self.odom_subscriber = self.create_subscription(Odometry, '/pf/pose/odom', self.odom_callback, qos_profile_sensor_data)
         self.ackermann_publisher = self.create_publisher(AckermannDrive, 'ackermann_cmd', 10)
         self.plan_publisher = self.create_publisher(Path, 'plan', 10)
-        self.waypoints = np.loadtxt('/ros2_ws/maps/addis_min_time3.csv', delimiter=';')
+        # self.waypoints = np.loadtxt('/ros2_ws/maps/track_optim.csv', delimiter=',', skiprows=1)
+        self.waypoints = np.loadtxt('/ros2_ws/maps/track_optim.csv', delimiter=';', skiprows=1)
 
         self.pose = None
         self.velocity = None
@@ -31,18 +33,18 @@ class NMPCNode(Node):
         self.target_ind = 0
         self.oa = None
         self.odelta = None
-        self.dt = 0.05
-        
 
-        # # Create a TF buffer and listener
-        # self.tf_buffer = tf2_ros.Buffer()
-        # self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
+        self.oa_array = []
+        self.odelta_array = []
+        self.dt = 0.02
 
-
+        self.action = AckermannDrive()
+        self.accels = []
+        self.steering_angles = []
 
         # Set the timer to periodically check the transform
-        self.timer = self.create_timer(self.dt, self.timer_callback)  # 1.0 seconds interval
-
+        self.control_timer = self.create_timer(self.dt, self.control_callback)  # 1.0 seconds interval
+        # self.speed_timer = self.create_timer(0.1, self.publish_speed)
 
     # def publish_plan(self):
     #     _, idx = self.get_closest_waypoint()
@@ -71,6 +73,19 @@ class NMPCNode(Node):
     #             closest_index = i
     #     return closest_waypoint, closest_index
 
+    def publish_speed(self):
+        # Take out one odelta and oa
+        if len(self.odelta_array) > 0:
+            # Pop the numpy array
+            di, ai = self.odelta_array.pop(0), self.oa_array.pop(0)
+            vel_c = self.state.v + 2.5 * ai * self.dt
+
+            action = AckermannDrive()
+            action.speed = vel_c
+            action.steering_angle =  0.75 * di
+            self.ackermann_publisher.publish(action)
+            print('Published speed:', vel_c, 'Published steering angle:', di)
+
     def odom_callback(self, msg):
         self.pose = [msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z]
         self.velocity = [msg.twist.twist.linear.x, msg.twist.twist.linear.y]
@@ -80,31 +95,27 @@ class NMPCNode(Node):
         self.state.yaw = rpy[2]
         self.state.v = msg.twist.twist.linear.x
 
-    def timer_callback(self):
+    def control_callback(self):
         # Extract the waypoint
         cx = self.waypoints[:, 1]
         cy = self.waypoints[:, 2]
+        # cyaw = self.waypoints[:, 3]
         # Calculate the yaw by shifting the array
         cyaw = np.zeros_like(cx)
         cyaw[1:] = np.arctan2(np.diff(cy), np.diff(cx))
         cyaw[0] = cyaw[1]
         
+        # sp = NMPC.calc_speed_profile(cx, cy, cyaw, target_speed=2.0)
         sp = self.waypoints[:, 5]
         ck = self.waypoints[:, 4]
 
-        xref, self.target_ind, dref = NMPC.calc_ref_trajectory(self.state, cx, cy, cyaw, ck, sp, self.ds, self.target_ind)
+        xref, self.target_ind, dref = NMPC.calc_ref_trajectory(self.state, cx, cy, cyaw, None, sp, self.ds, self.target_ind)
         x0 = [self.state.x, self.state.y, self.state.v, self.state.yaw]
 
         self.oa, self.odelta, ox, oy, oyaw, ov = NMPC.iterative_linear_mpc_control(xref, x0, dref, self.oa, self.odelta)
-        di, ai = 0.0, 0.0
-        if self.odelta is not None:
-            di, ai = self.odelta[0], self.oa[0]
-            vel_c = self.state.v + ai * self.dt
-
-            ackermann_drive = AckermannDrive()
-            ackermann_drive.speed = vel_c
-            ackermann_drive.steering_angle =  di
-            self.ackermann_publisher.publish(ackermann_drive)
+        self.oa_array = self.oa.tolist()
+        self.odelta_array = self.odelta.tolist()
+        self.publish_speed()
         
         # Publish the plan
         plan = Path()
@@ -118,7 +129,7 @@ class NMPCNode(Node):
             plan.poses.append(pose)
         self.plan_publisher.publish(plan)
 
-        print('yaw_ref:', xref[3, 0],  'yaw:', self.state.yaw)
+        print('yaw_ref:', xref[3, 0],  'yaw:', self.state.yaw, 'speed_ref:', xref[2, 0], 'speed:', self.state.v)
 
 
 

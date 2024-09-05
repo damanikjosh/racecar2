@@ -1,4 +1,4 @@
-REMOTE_HOST=lics@192.168.24.102
+REMOTE_HOST=lics@192.168.24.4
 IMAGE_NAME=racecar_robot
 TAG=latest
 CONTAINER_NAME=ros

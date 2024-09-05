@@ -42,8 +42,8 @@ bridge:
     scan_beams: 1080
 
     # map parameters
-    map_path: '/ros2_ws/maps/addis'
-    map_img_ext: '.png'
+    map_path: '/ros2_ws/maps/track'
+    map_img_ext: '.pgm'
 
     # opponent parameters
     num_agent: 1
@@ -51,7 +51,7 @@ bridge:
     # ego starting pose on map
     sx: 0.0
     sy: 0.0
-    stheta: 3.14
+    stheta: 0.0
 
     # opp starting pose on map
     sx1: 2.0
