@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
+  <arg name="localization" default="true" />
   <include file="$(find-pkg-share f1tenth_gym_ros)/launch/gym_bridge_launch.py" />
   <include file="$(find-pkg-share racecar_control)/launch/control.launch" />
   <include file="$(find-pkg-share racecar_control)/launch/teleop.launch">
     <arg name="usb" value="true" />
   </include>
+  <group if="$(var localization)">
+    <!-- ros2 launch racecar_bringup localization_launch.py -->
+    <include file="$(find-pkg-share racecar_bringup)/launch/localization_launch.py" />
+  </group>
 </launch>
