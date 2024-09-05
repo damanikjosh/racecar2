@@ -270,6 +270,16 @@ def Linear_MPC(xref , xbar, x0 , dref):
     #         yaw_diff = xref[3, i] - x0[3]
     #     else:
     #         pass
+    for i in range(1, T+1):
+        yaw_diff = xref[3, i] - x0[3]
+        while yaw_diff > np.pi:
+            xref[3, i] -= 2*np.pi
+            yaw_diff = xref[3, i] - x0[3]
+        while yaw_diff < -np.pi:
+            xref[3, i] += 2*np.pi
+            yaw_diff = xref[3, i] - x0[3]
+        else:
+            pass
     
 
     # cast MPC to a QP x = [x u]
