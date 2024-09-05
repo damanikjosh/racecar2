@@ -330,18 +330,18 @@ def Linear_MPC(xref , xbar, x0 , dref):
     if sol.info.status != 'solved':
         print("Error: Cannot solve mpc..")
         oa, odelta, ox, oy, oyaw, ov = None, None, None, None, None, None
-
-    x = sol.x[:NX * (T + 1)].reshape((T + 1, NX))
-    u = sol.x[NX * (T + 1):NX * (T + 1) + NU * T].reshape((T, NU))
-    # print('solution: ', sol.x)
-    # print('u:', u[:,0])
-    ox = x[:, 0]
-    oy = x[:,1]
-    ov = x[ :,2]
-    oyaw = x[ :,3]
-    oa = u[:, 0]
-    odelta = u[:, 1]
-    # print(NX * (T + 1) + NU * T , sol.x.shape)
+    else:
+        x = sol.x[:NX * (T + 1)].reshape((T + 1, NX))
+        u = sol.x[NX * (T + 1):NX * (T + 1) + NU * T].reshape((T, NU))
+        # print('solution: ', sol.x)
+        # print('u:', u[:,0])
+        ox = x[:, 0]
+        oy = x[:,1]
+        ov = x[ :,2]
+        oyaw = x[ :,3]
+        oa = u[:, 0]
+        odelta = u[:, 1]
+        # print(NX * (T + 1) + NU * T , sol.x.shape)
 
     return oa, odelta, ox, oy, oyaw, ov
 
