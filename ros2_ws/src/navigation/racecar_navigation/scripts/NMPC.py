@@ -24,10 +24,10 @@ NX = 4 # x, y, v, yaw
 NU = 2 # acceleration, steering angle
 T = 10 #horizon length
 DT = 0.025 # time step
-Q = sparse.diags([2.0, 2.0, .5, .450]) # State cost matrix
+Q = sparse.diags([2.0, 2.0, .5, 1]) # State cost matrix
 
 R = sparse.diags([0.1, 1.01]) # Control cost matrix
-Qf = sparse.diags([2., 2., 1.5, .25]) # Final state cost matrix
+Qf = sparse.diags([2., 2., 1.5, 1.25]) # Final state cost matrix
 Rd = sparse.diags([1, 1]) # Control difference cost matrix
 
 ds = 0.5 # [m] distance of each interpolated points
@@ -472,7 +472,7 @@ def calc_ref_trajectory(state, cx, cy, cyaw, ck, sp, dl, pind):
             xref[2, k] = sp[n]
             xref[3, k] = cyaw[n]
             dref[0, k] = 0.0
-
+    xref[3,:] = smooth_yaw(xref[3,:])
     return xref, i, dref
 
 def calc_speed_profile(cx, cy, cyaw, target_speed):
@@ -500,6 +500,11 @@ def calc_speed_profile(cx, cy, cyaw, target_speed):
     return speed_profile
 
 def smooth_yaw(yaw):
+    for i in range(len(yaw)):
+        while yaw[i] >= 2* math.pi:
+            yaw[i] -= math.pi * 2.0
+        while yaw[i] <= -2* math.pi:
+            yaw[i] += math.pi * 2.0
     for i in range(len(yaw) - 1):
         dyaw = yaw[i + 1] - yaw[i]
         while dyaw >= math.pi / 2.0:
@@ -509,10 +514,6 @@ def smooth_yaw(yaw):
         while dyaw <= -math.pi / 2.0:
             yaw[i + 1] += math.pi * 2.0
             dyaw = yaw[i + 1] - yaw[i]
-    # for i in range(len(yaw)):
-    #     while yaw[i] >= 2* math.pi:
-    #         yaw[i] -= math.pi * 2.0
-    #     while yaw[i] <= -2* math.pi:
-    #         yaw[i] += math.pi * 2.0
+    
 
     return yaw

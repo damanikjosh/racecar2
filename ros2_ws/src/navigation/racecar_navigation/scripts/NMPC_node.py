@@ -28,16 +28,17 @@ class NMPCNode(Node):
         y_loc = 1
         for i in range(len(self.waypoints)-1):
             current_wpt = np.array([self.waypoints[i][x_loc], self.waypoints[i][y_loc]])
-            next_wpt = np.array([self.waypoints[(i + 1),x_loc ], self.waypoints[(i + 1), y_loc]])
+            next_wpt = np.array([self.waypoints[i + 1,x_loc ], self.waypoints[i + 1, y_loc]])
             diff = next_wpt - current_wpt
             yaw = np.arctan2(diff[1], diff[0])
             self.waypoints[i][3] = yaw
-        current_wpt = np.array([self.waypoints[-1][1], self.waypoints[-1][2]])
-        next_wpt = np.array([self.waypoints[0][1], self.waypoints[0][2]])
+        current_wpt = np.array([self.waypoints[-1][x_loc], self.waypoints[-1][y_loc]])
+        next_wpt = np.array([self.waypoints[0][x_loc], self.waypoints[0][y_loc]])
         diff = next_wpt - current_wpt
         yaw = np.arctan2(diff[1], diff[0])
         self.waypoints[-1][3] = yaw
         self.waypoints[:, 3] = NMPC.smooth_yaw(self.waypoints[:, 3])
+        print(self.waypoints[:,3])
         self.waypoints[:, 2] = NMPC.calc_speed_profile(self.waypoints[:, 0], self.waypoints[:, 1], self.waypoints[:, 3], target_speed=2.0)
         self.pose = None
         self.velocity = None
