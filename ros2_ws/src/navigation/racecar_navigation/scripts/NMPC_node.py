@@ -24,7 +24,7 @@ class NMPCNode(Node):
         self.plan_publisher = self.create_publisher(Path, 'plan', 10)
         # self.waypoints = np.loadtxt('/ros2_ws/maps/track_optim.csv', delimiter=',', skiprows=1)
         self.waypoints = np.loadtxt('/ros2_ws/maps/track_optim.csv', delimiter=';', skiprows=1)
-        for i in range(len(self.waypoints)):
+        for i in range(len(self.waypoints)-1):
             current_wpt = np.array([self.waypoints[i][1], self.waypoints[i][2]])
             next_wpt = np.array([self.waypoints[(i + 1),1 ], self.waypoints[(i + 1), 2]])
             diff = next_wpt - current_wpt
