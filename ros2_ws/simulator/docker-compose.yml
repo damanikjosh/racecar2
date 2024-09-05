@@ -6,7 +6,7 @@ services:
     environment:
       - ROS_DOMAIN_ID=16
       - LC_NUMERIC=en_US.UTF-8
-      # - DISPLAY=:0
+      - DISPLAY=:1
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
       - PYTHONUNBUFFERED=1

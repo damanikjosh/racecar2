@@ -26,7 +26,7 @@ push:
 	rsync -avz ../ $(REMOTE_HOST):~/racecar2/ros2_ws/
 
 run:
-	ssh $(REMOTE_HOST) "cd ~/racecar2/ros2_ws/robot && docker compose kill && docker compose up -d"
+	ssh $(REMOTE_HOST) "cd ~/racecar2/ros2_ws/robot && docker compose kill && docker rm ros && docker compose up -d"
 	ssh -t $(REMOTE_HOST) "docker exec -it $(CONTAINER_NAME) bash"
 	ssh $(REMOTE_HOST) "cd ~/racecar2/ros2_ws/robot && docker compose kill"
 
