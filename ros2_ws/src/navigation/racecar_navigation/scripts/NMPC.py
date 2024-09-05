@@ -23,11 +23,11 @@ from numba import njit
 NX = 4 # x, y, v, yaw
 NU = 2 # acceleration, steering angle
 T = 10 #horizon length
-DT = 0.02 # time step
-Q = sparse.diags([1.0, 1.0, .5, 1.0]) # State cost matrix
+DT = 0.015 # time step
+Q = sparse.diags([2.0, 2.0, .5, .450]) # State cost matrix
 
-R = sparse.diags([0.1, 5.50]) # Control cost matrix
-Qf = sparse.diags([2., 2., 1., 2.]) # Final state cost matrix
+R = sparse.diags([0.1, 1.01]) # Control cost matrix
+Qf = sparse.diags([2., 2., 1.5, .25]) # Final state cost matrix
 Rd = sparse.diags([1, 1]) # Control difference cost matrix
 
 ds = 0.5 # [m] distance of each interpolated points
@@ -200,10 +200,10 @@ def update_state(state, a, delta):
     elif state.v < MIN_SPEED:
         state.v = MIN_SPEED
 
-    while yaw >= 2* math.pi:
-        yaw -= 2*np.pi
-    while yaw <= -2* math.pi:
-        yaw += 2*np.pi
+    while state.yaw >= 2* math.pi:
+        state.yaw -= 2*np.pi
+    while state.yaw <= -2* math.pi:
+        state.yaw += 2*np.pi
     return state
 
 def angle_mod(x, zero_2_2pi=False, degree=False):

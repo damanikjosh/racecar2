@@ -35,8 +35,7 @@ class NMPCNode(Node):
         diff = next_wpt - current_wpt
         yaw = np.arctan2(diff[1], diff[0])
         self.waypoints[-1][3] = yaw
-        self.waypoints[:, 3] = self.smooth_yaw(self.waypoints[:, 3])
-
+        self.waypoints[:, 3] = NMPC.smooth_yaw(self.waypoints[:, 3])
         self.pose = None
         self.velocity = None
 
