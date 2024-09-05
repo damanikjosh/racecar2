@@ -1,6 +1,6 @@
 vesc_driver:
   ros__parameters:
-    port: "/dev/ttyACM0"
+    port: "/dev/ttyUSB0"
     brake_max: 200000.0
     brake_min: -20000.0
     current_max: 60.0
