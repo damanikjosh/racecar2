@@ -23,7 +23,7 @@ from numba import njit
 NX = 4 # x, y, v, yaw
 NU = 2 # acceleration, steering angle
 T = 10 #horizon length
-DT = 0.015 # time step
+DT = 0.025 # time step
 Q = sparse.diags([2.0, 2.0, .5, .450]) # State cost matrix
 
 R = sparse.diags([0.1, 1.01]) # Control cost matrix
@@ -200,10 +200,10 @@ def update_state(state, a, delta):
     elif state.v < MIN_SPEED:
         state.v = MIN_SPEED
 
-    while state.yaw >= 2* math.pi:
-        state.yaw -= 2*np.pi
-    while state.yaw <= -2* math.pi:
-        state.yaw += 2*np.pi
+    # while state.yaw >= 2* math.pi:
+    #     state.yaw -= 2*np.pi
+    # while state.yaw <= -2* math.pi:
+    #     state.yaw += 2*np.pi
     return state
 
 def angle_mod(x, zero_2_2pi=False, degree=False):
@@ -260,16 +260,16 @@ def get_nparray_from_matrix(x):
 # Linear MPC using osqp 
 def Linear_MPC(xref , xbar, x0 , dref):
     # # print('xref[3]:', xref[3], 'x0[3]:', x0[3])
-    for i in range(1, T+1):
-        yaw_diff = xref[3, i] - x0[3]
-        while yaw_diff > np.pi:
-            xref[3, i] -= 2*np.pi
-            yaw_diff = xref[3, i] - x0[3]
-        while yaw_diff < -np.pi:
-            xref[3, i] += 2*np.pi
-            yaw_diff = xref[3, i] - x0[3]
-        else:
-            pass
+    # for i in range(1, T+1):
+    #     yaw_diff = xref[3, i] - x0[3]
+    #     while yaw_diff > np.pi:
+    #         xref[3, i] -= 2*np.pi
+    #         yaw_diff = xref[3, i] - x0[3]
+    #     while yaw_diff < -np.pi:
+    #         xref[3, i] += 2*np.pi
+    #         yaw_diff = xref[3, i] - x0[3]
+    #     else:
+    #         pass
     
 
     # cast MPC to a QP x = [x u]
@@ -499,10 +499,10 @@ def smooth_yaw(yaw):
         while dyaw <= -math.pi / 2.0:
             yaw[i + 1] += math.pi * 2.0
             dyaw = yaw[i + 1] - yaw[i]
-    for i in range(len(yaw)):
-        while yaw[i] >= 2* math.pi:
-            yaw[i] -= math.pi * 2.0
-        while yaw[i] <= -2* math.pi:
-            yaw[i] += math.pi * 2.0
+    # for i in range(len(yaw)):
+    #     while yaw[i] >= 2* math.pi:
+    #         yaw[i] -= math.pi * 2.0
+    #     while yaw[i] <= -2* math.pi:
+    #         yaw[i] += math.pi * 2.0
 
     return yaw

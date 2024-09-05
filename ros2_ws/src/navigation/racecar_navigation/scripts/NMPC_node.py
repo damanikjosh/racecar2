@@ -23,10 +23,12 @@ class NMPCNode(Node):
         self.ackermann_publisher = self.create_publisher(AckermannDrive, 'ackermann_cmd', 10)
         self.plan_publisher = self.create_publisher(Path, 'plan', 10)
         # self.waypoints = np.loadtxt('/ros2_ws/maps/track_optim.csv', delimiter=',', skiprows=1)
-        self.waypoints = np.loadtxt('/ros2_ws/maps/track_optim.csv', delimiter=';', skiprows=1)
+        self.waypoints = np.loadtxt('/ros2_ws/maps/track_centerline.csv', delimiter=',', skiprows=1)
+        x_loc = 0 
+        y_loc = 1
         for i in range(len(self.waypoints)-1):
-            current_wpt = np.array([self.waypoints[i][1], self.waypoints[i][2]])
-            next_wpt = np.array([self.waypoints[(i + 1),1 ], self.waypoints[(i + 1), 2]])
+            current_wpt = np.array([self.waypoints[i][x_loc], self.waypoints[i][y_loc]])
+            next_wpt = np.array([self.waypoints[(i + 1),x_loc ], self.waypoints[(i + 1), y_loc]])
             diff = next_wpt - current_wpt
             yaw = np.arctan2(diff[1], diff[0])
             self.waypoints[i][3] = yaw
@@ -36,10 +38,12 @@ class NMPCNode(Node):
         yaw = np.arctan2(diff[1], diff[0])
         self.waypoints[-1][3] = yaw
         self.waypoints[:, 3] = NMPC.smooth_yaw(self.waypoints[:, 3])
+        self.waypoints[:, 2] = NMPC.calc_speed_profile(self.waypoints[:, 0], self.waypoints[:, 1], self.waypoints[:, 3], target_speed=2.0)
         self.pose = None
         self.velocity = None
 
         self.state = NMPC.State(x=0, y=0, yaw=0, v=0)
+        self.yaws = []
         self.ds = 0.5
         self.target_ind = 0
         self.oa = None
@@ -47,7 +51,7 @@ class NMPCNode(Node):
 
         self.oa_array = []
         self.odelta_array = []
-        self.dt = 0.02
+        self.dt = 0.025
 
         self.action = AckermannDrive()
         self.accels = []
@@ -93,7 +97,7 @@ class NMPCNode(Node):
 
             action = AckermannDrive()
             action.speed = vel_c
-            action.steering_angle =  0.75 * di
+            action.steering_angle =  di
             self.ackermann_publisher.publish(action)
             print('Published speed:', vel_c, 'Published steering angle:', di)
 
@@ -102,14 +106,16 @@ class NMPCNode(Node):
         self.velocity = [msg.twist.twist.linear.x, msg.twist.twist.linear.y]
         self.state.x = msg.pose.pose.position.x
         self.state.y = msg.pose.pose.position.y
-        rpy = euler_from_quaternion([msg.pose.pose.orientation.x, msg.pose.pose.orientation.y, msg.pose.pose.orientation.z, msg.pose.pose.orientation.w])
-        self.state.yaw = rpy[2]
+        rpy = euler_from_quaternion([msg.pose.pose.orientation.x, msg.pose.pose.orientation.y, msg.pose.pose.orientation.z, msg.pose.pose.orientation.w]) 
+        self.yaws.append(rpy[2])
+        self.yaws = NMPC.smooth_yaw(self.yaws)
+        self.state.yaw = self.yaws[-1]
         self.state.v = msg.twist.twist.linear.x
 
     def control_callback(self):
         # Extract the waypoint
-        cx = self.waypoints[:, 1]
-        cy = self.waypoints[:, 2]
+        cx = self.waypoints[:, 0]
+        cy = self.waypoints[:, 1]
         cyaw = self.waypoints[:, 3]
         # cyaw = self.waypoints[:, 3]
         # Calculate the yaw by shifting the array
@@ -118,8 +124,8 @@ class NMPCNode(Node):
         # cyaw[0] = cyaw[1]
         
         # sp = NMPC.calc_speed_profile(cx, cy, cyaw, target_speed=2.0)
-        sp = self.waypoints[:, 5]
-        ck = self.waypoints[:, 4]
+        sp = self.waypoints[:, 2]
+        ck = self.waypoints[:, 1]
 
         xref, self.target_ind, dref = NMPC.calc_ref_trajectory(self.state, cx, cy, cyaw, None, sp, self.ds, self.target_ind)
         x0 = [self.state.x, self.state.y, self.state.v, self.state.yaw]
