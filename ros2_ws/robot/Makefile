@@ -1,7 +1,7 @@
-REMOTE_HOST=lics@192.168.24.4
+REMOTE_HOST=lics@192.168.24.18
 IMAGE_NAME=racecar_robot
 # Set LOCAL_BUILDER to true if you want to build the image locally
-LOCAL_BUILDER=true
+LOCAL_BUILDER=false
 TAG=latest
 CONTAINER_NAME=ros
 REGISTRY=macbook:5001
