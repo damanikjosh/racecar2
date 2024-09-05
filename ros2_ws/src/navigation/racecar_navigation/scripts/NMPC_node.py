@@ -24,6 +24,18 @@ class NMPCNode(Node):
         self.plan_publisher = self.create_publisher(Path, 'plan', 10)
         # self.waypoints = np.loadtxt('/ros2_ws/maps/track_optim.csv', delimiter=',', skiprows=1)
         self.waypoints = np.loadtxt('/ros2_ws/maps/track_optim.csv', delimiter=';', skiprows=1)
+        for i in range(len(self.waypoints)):
+            current_wpt = np.array([self.waypoints[i][1], self.waypoints[i][2]])
+            next_wpt = np.array([self.waypoints[(i + 1),1 ], self.waypoints[(i + 1), 2]])
+            diff = next_wpt - current_wpt
+            yaw = np.arctan2(diff[1], diff[0])
+            self.waypoints[i][3] = yaw
+        current_wpt = np.array([self.waypoints[-1][1], self.waypoints[-1][2]])
+        next_wpt = np.array([self.waypoints[0][1], self.waypoints[0][2]])
+        diff = next_wpt - current_wpt
+        yaw = np.arctan2(diff[1], diff[0])
+        self.waypoints[-1][3] = yaw
+        self.waypoints[:, 3] = self.smooth_yaw(self.waypoints[:, 3])
 
         self.pose = None
         self.velocity = None
@@ -99,11 +111,12 @@ class NMPCNode(Node):
         # Extract the waypoint
         cx = self.waypoints[:, 1]
         cy = self.waypoints[:, 2]
+        cyaw = self.waypoints[:, 3]
         # cyaw = self.waypoints[:, 3]
         # Calculate the yaw by shifting the array
-        cyaw = np.zeros_like(cx)
-        cyaw[1:] = np.arctan2(np.diff(cy), np.diff(cx))
-        cyaw[0] = cyaw[1]
+        # cyaw = np.zeros_like(cx)
+        # cyaw[1:] = np.arctan2(np.diff(cy), np.diff(cx))
+        # cyaw[0] = cyaw[1]
         
         # sp = NMPC.calc_speed_profile(cx, cy, cyaw, target_speed=2.0)
         sp = self.waypoints[:, 5]
