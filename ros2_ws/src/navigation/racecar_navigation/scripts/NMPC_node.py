@@ -41,7 +41,7 @@ class NMPCNode(Node):
         self.waypoints[len(self.waypoints)-1][3] = yaw
         self.waypoints[:, 3] = NMPC.smooth_yaw(self.waypoints[:, 3])
         print(self.waypoints[:,3])
-        self.waypoints[:, 2] = NMPC.calc_speed_profile(self.waypoints[:, 0], self.waypoints[:, 1], self.waypoints[:, 3], target_speed=4.0)
+        self.waypoints[:, 2] = NMPC.calc_speed_profile(self.waypoints[:, 0], self.waypoints[:, 1], self.waypoints[:, 3], target_speed=5.0)
         self.pose = None
         self.velocity = None
 
@@ -55,7 +55,7 @@ class NMPCNode(Node):
 
         self.oa_array = []
         self.odelta_array = []
-        self.dt = 0.025
+        self.dt = NMPC.DT
 
         self.action = AckermannDrive()
         self.accels = []
