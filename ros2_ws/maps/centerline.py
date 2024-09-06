@@ -5,7 +5,7 @@ import yaml
 import os
 from PIL import Image
 import numpy as np
-import scipy
+import scipy.signal
 from skimage.morphology import skeletonize
 import sys
 
@@ -174,3 +174,69 @@ def convert_centerline_to_image(centerline: RealCenterline, yaml_content: MapYam
     track_widths_np /= map_resolution
 
     return ImageCenterline(waypoints_np.tolist(), track_widths_np.tolist())
+
+def smooth_centerline(centerline: RealCenterline, window_size: int) -> RealCenterline:
+    waypoints_np = np.array(centerline.waypoints)
+    track_widths_np = np.array(centerline.track_widths)
+
+    # Pad the waypoints and track widths before smoothing
+    padding_size = window_size // 2
+    padded_waypoints = np.pad(waypoints_np, ((padding_size, padding_size), (0, 0)), mode='edge')
+    padded_track_widths = np.pad(track_widths_np, ((padding_size, padding_size), (0, 0)), mode='edge')
+
+    # Use savgol filter to smooth the centerline
+    smoothed_centerline = scipy.signal.savgol_filter(padded_waypoints.T, window_size, 3).T
+    smoothed_track_widths = scipy.signal.savgol_filter(padded_track_widths.T, window_size, 3).T
+
+    # Remove the padding
+    smoothed_centerline = smoothed_centerline[padding_size:-padding_size]
+    smoothed_track_widths = smoothed_track_widths[padding_size:-padding_size]
+
+    return RealCenterline(smoothed_centerline.tolist(), smoothed_track_widths.tolist())
+
+def resample_centerline(centerline: RealCenterline, resample_distance: float) -> RealCenterline:
+    waypoints_np = np.array(centerline.waypoints)
+    track_widths_np = np.array(centerline.track_widths)
+
+    resampled_centerline = []
+    resampled_track_widths = []
+
+    # Start from the first waypoint
+    current_position = waypoints_np[0]
+    current_track_width = track_widths_np[0]
+    resampled_centerline.append(current_position)
+    resampled_track_widths.append(current_track_width)
+
+    distance_accumulated = 0.0
+
+    for i in range(1, len(waypoints_np)):
+        p1 = waypoints_np[i - 1]
+        p2 = waypoints_np[i]
+        width1 = track_widths_np[i - 1]
+        width2 = track_widths_np[i]
+        segment_distance = np.linalg.norm(p2 - p1)
+
+        # Handle interpolation over the current segment
+        while distance_accumulated + segment_distance >= resample_distance:
+            # Calculate the interpolation ratio based on resample distance
+            ratio = (resample_distance - distance_accumulated) / segment_distance
+            new_point = p1 + ratio * (p2 - p1)
+            new_width = width1 + ratio * (width2 - width1)
+
+            resampled_centerline.append(new_point)
+            resampled_track_widths.append(new_width)
+
+            # Move the current position forward and reduce the remaining segment distance
+            p1 = new_point
+            width1 = new_width
+            segment_distance -= resample_distance
+            distance_accumulated = 0.0  # Reset since we sampled a point
+
+        # Accumulate the leftover segment distance
+        distance_accumulated += segment_distance
+
+    # Append the last point and its width
+    resampled_centerline.append(waypoints_np[-1])
+    resampled_track_widths.append(track_widths_np[-1])
+
+    return RealCenterline(resampled_centerline, resampled_track_widths)
