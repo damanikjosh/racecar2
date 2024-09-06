@@ -22,12 +22,12 @@ from numba import njit
 # working but suboptimal parameter set for the map addis 
 NX = 4 # x, y, v, yaw
 NU = 2 # acceleration, steering angle
-T = 10 #horizon length
+T = 5 #horizon length
 DT = 0.025 # time step
-Q = sparse.diags([2.0, 2.0, .5, 1]) # State cost matrix
+Q = sparse.diags([2.0, 2.0, .5, 0.8]) # State cost matrix
 
 R = sparse.diags([0.1, 1.01]) # Control cost matrix
-Qf = sparse.diags([2., 2., 1.5, 1.25]) # Final state cost matrix
+Qf = sparse.diags([2., 2., 1, 0.75]) # Final state cost matrix
 Rd = sparse.diags([1, 1]) # Control difference cost matrix
 
 ds = 0.5 # [m] distance of each interpolated points
@@ -39,7 +39,8 @@ MAX_DSTEER = np.deg2rad(100.0)  # maximum steering speed [rad/s]
 MAX_SPEED = 15 # maximum speed [m/s]
 MIN_SPEED = -2  # minimum speed [m/s]
 MAX_ACCEL = 5.0  # maximum accel [m/ss]
-
+MAX_ITER = 1 # Max iteration
+DU_TH = 0.001  # iteration finish parameter
 
 # slow but working
 # NX = 4 # x, y, v, yaw
@@ -200,10 +201,10 @@ def update_state(state, a, delta):
     elif state.v < MIN_SPEED:
         state.v = MIN_SPEED
 
-    # while state.yaw >= 2* math.pi:
-    #     state.yaw -= 2*np.pi
-    # while state.yaw <= -2* math.pi:
-    #     state.yaw += 2*np.pi
+    while state.yaw >= 2* math.pi:
+        state.yaw -= 2*np.pi
+    while state.yaw <= -2* math.pi:
+        state.yaw += 2*np.pi
     return state
 
 def angle_mod(x, zero_2_2pi=False, degree=False):
@@ -407,8 +408,8 @@ def Linear_MPC(xref , xbar, x0 , dref):
 
 #     return oa, odelta, ox, oy, oyaw, ov
 
-MAX_ITER = 1 # Max iteration
-DU_TH = 0.01  # iteration finish parameter
+# MAX_ITER = 1 # Max iteration
+# DU_TH = 0.01  # iteration finish parameter
 
 def iterative_linear_mpc_control(xref, x0, dref, oa, od):
     ox, oy, oyaw, ov = None, None, None, None
@@ -421,8 +422,12 @@ def iterative_linear_mpc_control(xref, x0, dref, oa, od):
         xbar = predict_motion(x0, oa, od, xref)
         poa, pod = oa[:], od[:]
         oa, od, ox, oy, oyaw, ov = Linear_MPC(xref, xbar, x0, dref)
-        du = sum(abs(oa - poa)) + sum(abs(od - pod))
-        if du <= DU_TH:
+        if oa is not None: 
+            du = sum(abs(oa - poa)) + sum(abs(od - pod))
+            if du <= DU_TH:
+                break
+        if  oa is None and i == MAX_ITER - 1:
+            print("Error: Cannot solve mpc. will use prevous solution.")
             break
     print('Time taken by MPC', tm.time()- since)
     return oa, od, ox, oy, oyaw, ov
@@ -472,6 +477,7 @@ def calc_ref_trajectory(state, cx, cy, cyaw, ck, sp, dl, pind):
             xref[2, k] = sp[n]
             xref[3, k] = cyaw[n]
             dref[0, k] = 0.0
+    
     xref[3,:] = smooth_yaw(xref[3,:])
     return xref, i, dref
 
@@ -510,10 +516,19 @@ def smooth_yaw(yaw):
         while dyaw >= math.pi / 2.0:
             yaw[i + 1] -= math.pi * 2.0
             dyaw = yaw[i + 1] - yaw[i]
-
         while dyaw <= -math.pi / 2.0:
             yaw[i + 1] += math.pi * 2.0
             dyaw = yaw[i + 1] - yaw[i]
-    
-
     return yaw
+
+def smooth_yaw_without(yaw):
+    for i in range(len(yaw) - 1):
+        dyaw = yaw[i + 1] - yaw[i]
+        while dyaw >= math.pi / 2.0:
+            yaw[i + 1] -= math.pi * 2.0
+            dyaw = yaw[i + 1] - yaw[i]
+        while dyaw <= -math.pi / 2.0:
+            yaw[i + 1] += math.pi * 2.0
+            dyaw = yaw[i + 1] - yaw[i]
+    return yaw
+

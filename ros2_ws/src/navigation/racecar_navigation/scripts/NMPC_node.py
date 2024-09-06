@@ -23,8 +23,10 @@ class NMPCNode(Node):
         self.ackermann_publisher = self.create_publisher(AckermannDrive, 'ackermann_cmd', 10)
         self.plan_publisher = self.create_publisher(Path, 'plan', 10)
         # self.waypoints = np.loadtxt('/ros2_ws/maps/track_optim.csv', delimiter=',', skiprows=1)
-        self.waypoints = np.loadtxt('/ros2_ws/maps/track_centerline.csv', delimiter=',', skiprows=1)
-        x_loc = 0 
+        # self.waypoints = np.loadtxt('/ros2_ws/maps/track_optim_nav2.csv', delimiter=',', skiprows=1)
+        # self.waypoints = np.loadtxt('/ros2_ws/maps/track_centerline.csv', delimiter=',', skiprows=1)
+        # self.waypoints = np.loadtxt('/ros2_ws/maps/ki_3f_r_centerline.csv', delimiter=',', skiprows=1)
+        x_loc = 0
         y_loc = 1
         for i in range(len(self.waypoints)-1):
             current_wpt = np.array([self.waypoints[i][x_loc], self.waypoints[i][y_loc]])
@@ -32,14 +34,14 @@ class NMPCNode(Node):
             diff = next_wpt - current_wpt
             yaw = np.arctan2(diff[1], diff[0])
             self.waypoints[i][3] = yaw
-        current_wpt = np.array([self.waypoints[-1][x_loc], self.waypoints[-1][y_loc]])
+        current_wpt = np.array([self.waypoints[len(self.waypoints)-1][x_loc], self.waypoints[len(self.waypoints)-1][y_loc]])
         next_wpt = np.array([self.waypoints[0][x_loc], self.waypoints[0][y_loc]])
         diff = next_wpt - current_wpt
         yaw = np.arctan2(diff[1], diff[0])
-        self.waypoints[-1][3] = yaw
+        self.waypoints[len(self.waypoints)-1][3] = yaw
         self.waypoints[:, 3] = NMPC.smooth_yaw(self.waypoints[:, 3])
         print(self.waypoints[:,3])
-        self.waypoints[:, 2] = NMPC.calc_speed_profile(self.waypoints[:, 0], self.waypoints[:, 1], self.waypoints[:, 3], target_speed=2.0)
+        self.waypoints[:, 2] = NMPC.calc_speed_profile(self.waypoints[:, 0], self.waypoints[:, 1], self.waypoints[:, 3], target_speed=5.0)
         self.pose = None
         self.velocity = None
 
@@ -49,6 +51,7 @@ class NMPCNode(Node):
         self.target_ind = 0
         self.oa = None
         self.odelta = None
+        self.prev_yaw = None # Previous yaw for yaw smoothing 
 
         self.oa_array = []
         self.odelta_array = []
@@ -100,7 +103,7 @@ class NMPCNode(Node):
             action.speed = vel_c
             action.steering_angle =  di
             self.ackermann_publisher.publish(action)
-            print('Published speed:', vel_c, 'Published steering angle:', di)
+            # print('Published speed:', vel_c, 'Published steering angle:', di)
 
     def odom_callback(self, msg):
         self.pose = [msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z]
@@ -109,7 +112,7 @@ class NMPCNode(Node):
         self.state.y = msg.pose.pose.position.y
         rpy = euler_from_quaternion([msg.pose.pose.orientation.x, msg.pose.pose.orientation.y, msg.pose.pose.orientation.z, msg.pose.pose.orientation.w]) 
         self.yaws.append(rpy[2])
-        self.yaws = NMPC.smooth_yaw(self.yaws)
+        # self.yaws = NMPC.smooth_yaw_without(self.yaws)  # Smooth the yaw. is it really necessary?
         self.state.yaw = self.yaws[-1]
         self.state.v = msg.twist.twist.linear.x
 
@@ -129,11 +132,25 @@ class NMPCNode(Node):
         ck = self.waypoints[:, 1]
 
         xref, self.target_ind, dref = NMPC.calc_ref_trajectory(self.state, cx, cy, cyaw, None, sp, self.ds, self.target_ind)
+        if self.prev_yaw is not None:
+            yaws = []
+            yaws.extend(self.prev_yaw)
+            yaws.extend(xref[3, :])
+            yaw_smooth = NMPC.smooth_yaw_without(yaws)
+            xref[3, :] = yaw_smooth[2:]
+            print('yaw smooth:', yaw_smooth)
+        print('xref yaw:', xref[3, :])
+        
         x0 = [self.state.x, self.state.y, self.state.v, self.state.yaw]
 
-        self.oa, self.odelta, ox, oy, oyaw, ov = NMPC.iterative_linear_mpc_control(xref, x0, dref, self.oa, self.odelta)
-        self.oa_array = self.oa.tolist()
-        self.odelta_array = self.odelta.tolist()
+        oa, odelta, ox, oy, oyaw, ov = NMPC.iterative_linear_mpc_control(xref, x0, dref, self.oa, self.odelta)
+        if oa is None:
+            print('No solution')
+        else:
+            self.oa = oa
+            self.odelta = odelta
+            self.oa_array = self.oa.tolist()
+            self.odelta_array = self.odelta.tolist()
         self.publish_speed()
         
         # Publish the plan
@@ -147,8 +164,9 @@ class NMPCNode(Node):
             pose.pose.position.y = xref[1][i]
             plan.poses.append(pose)
         self.plan_publisher.publish(plan)
-
-        print('yaw_ref:', xref[3, 0],  'yaw:', self.state.yaw, 'speed_ref:', xref[2, 0], 'speed:', self.state.v)
+        self.prev_yaw = xref[3, :2]
+        # print('yaw_ref:', xref[3, 0],  'yaw:', self.state.yaw, 'speed_ref:', xref[2, 0], 'speed:', self.state.v)
+        print('yaw_ref:', xref[3, 0],  'yaw:', self.state.yaw)
 
 
 
