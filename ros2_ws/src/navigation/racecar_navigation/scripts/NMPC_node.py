@@ -25,7 +25,7 @@ class NMPCNode(Node):
         # self.waypoints = np.loadtxt('/ros2_ws/maps/track_optim.csv', delimiter=',', skiprows=1)
         # self.waypoints = np.loadtxt('/ros2_ws/maps/track_optim_nav2.csv', delimiter=',', skiprows=1)
         # self.waypoints = np.loadtxt('/ros2_ws/maps/track_centerline.csv', delimiter=',', skiprows=1)
-        # self.waypoints = np.loadtxt('/ros2_ws/maps/ki_3f_r_centerline.csv', delimiter=',', skiprows=1)
+        self.waypoints = np.loadtxt('/ros2_ws/maps/ki_3f_r_centerline.csv', delimiter=',', skiprows=1)[::3]
         x_loc = 0
         y_loc = 1
         for i in range(len(self.waypoints)-1):
@@ -41,7 +41,7 @@ class NMPCNode(Node):
         self.waypoints[len(self.waypoints)-1][3] = yaw
         self.waypoints[:, 3] = NMPC.smooth_yaw(self.waypoints[:, 3])
         print(self.waypoints[:,3])
-        self.waypoints[:, 2] = NMPC.calc_speed_profile(self.waypoints[:, 0], self.waypoints[:, 1], self.waypoints[:, 3], target_speed=5.0)
+        self.waypoints[:, 2] = NMPC.calc_speed_profile(self.waypoints[:, 0], self.waypoints[:, 1], self.waypoints[:, 3], target_speed=3.0)
         self.pose = None
         self.velocity = None
 
@@ -139,7 +139,7 @@ class NMPCNode(Node):
             yaw_smooth = NMPC.smooth_yaw_without(yaws)
             xref[3, :] = yaw_smooth[2:]
             print('yaw smooth:', yaw_smooth)
-        print('xref yaw:', xref[3, :])
+        # print('xref yaw:', xref[3, :])
         
         x0 = [self.state.x, self.state.y, self.state.v, self.state.yaw]
 
@@ -165,7 +165,7 @@ class NMPCNode(Node):
             plan.poses.append(pose)
         self.plan_publisher.publish(plan)
         self.prev_yaw = xref[3, :2]
-        # print('yaw_ref:', xref[3, 0],  'yaw:', self.state.yaw, 'speed_ref:', xref[2, 0], 'speed:', self.state.v)
+        print('yaw_ref:', xref[3, 0],  'yaw:', self.state.yaw, 'speed_ref:', xref[2, 0], 'speed:', self.state.v)
         print('yaw_ref:', xref[3, 0],  'yaw:', self.state.yaw)
 
 

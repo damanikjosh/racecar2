@@ -22,12 +22,12 @@ from numba import njit
 # working but suboptimal parameter set for the map addis 
 NX = 4 # x, y, v, yaw
 NU = 2 # acceleration, steering angle
-T = 5 #horizon length
+T = 12 #horizon length
 DT = 0.025 # time step
-Q = sparse.diags([2.0, 2.0, .5, 0.8]) # State cost matrix
+Q = sparse.diags([1.0, 1.0, .5, 0.8]) # State cost matrix
 
 R = sparse.diags([0.1, 1.01]) # Control cost matrix
-Qf = sparse.diags([2., 2., 1, 0.75]) # Final state cost matrix
+Qf = sparse.diags([3., 3., 1, 0.75]) # Final state cost matrix
 Rd = sparse.diags([1, 1]) # Control difference cost matrix
 
 ds = 0.5 # [m] distance of each interpolated points
